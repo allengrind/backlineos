@@ -3095,6 +3095,7 @@ function saveCotizacion() {
       idEquipo: eq ? (eq.serie || String(eq.id)) : (opt?.dataset.id||''),
       marca: eq ? (eq.marca||'') : (opt?.dataset.marca||''),
       nombre: eq ? eq.nombre : opt?.text || 'Item',
+      notas: eq ? (eq.notas||'') : '',
       cantidad: parseFloat(row.children[1].value) || 1,
       precioDia: parseFloat(row.children[2].value) || 0
     });
@@ -3287,19 +3288,28 @@ function drawTableHeader(doc, y, showPrecio) {
 
 function drawTableRow(doc, item, y, idx, showPrecio) {
   var W = 215.9;
-  var rowH = 8;
+  var hasNotas = item.notas && item.notas.trim().length > 0;
+  var rowH = hasNotas ? 13 : 8;
   // Alternating row bg
   if (idx % 2 === 1) { doc.setFillColor(249,249,252); doc.rect(14, y, W-28, rowH, 'F'); }
   // Bottom separator line
   doc.setDrawColor(228,228,235); doc.setLineWidth(0.2);
   doc.line(14, y+rowH, W-14, y+rowH);
-  // Text
+  // Item name
   doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(35,35,45);
   doc.text((item.nombre||'').substring(0,50), 22, y+5.5);
-  doc.setTextColor(100,100,115);
+  // Notas subtitle
+  if (hasNotas) {
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(140,140,155);
+    doc.text(('› ' + item.notas).substring(0,70), 22, y+10.5);
+  }
+  // Marca
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(100,100,115);
   doc.text((item.marca||'').substring(0,18), 120, y+5.5);
+  // Cantidad
   doc.setFont('helvetica','bold'); doc.setTextColor(50,50,65);
   doc.text(String(item.cantidad), 162, y+5.5, {align:'center'});
+  // Precio
   if (showPrecio) {
     doc.setFont('helvetica','bold'); doc.setTextColor(180,130,0);
     doc.text('$'+(item.precioDia||0).toLocaleString('es-MX',{minimumFractionDigits:2}), W-16, y+5.5, {align:'right'});
@@ -3348,14 +3358,15 @@ function exportPDF(id) {
   const iva = q.iva || 0;
   const anticipo = q.anticipo || 0;
 
+  const ivaPct = q.ivaPct ?? 16;
   const totals = [
     ['Costo de traslado', fmt(q.traslado||0), false],
     ['Costo de viáticos', fmt(q.viaticos||0), false],
     ['SubTotal', fmt(subtotal + extras), false],
-    ['IVA ('+( q.ivaPct??16)+'%)', fmt(iva), false],
-    ['Descuento ('+q.descPct+'%)', '-'+fmt(descuento), true],
-    ['Anticipo', '-'+fmt(anticipo), false],
   ];
+  if (ivaPct > 0) totals.push(['IVA (' + ivaPct + '%)', fmt(iva), false]);
+  if (q.descPct > 0) totals.push(['Descuento (' + q.descPct + '%)', '-' + fmt(descuento), true]);
+  if (q.anticipo > 0) totals.push(['Anticipo', '-' + fmt(anticipo), false]);
 
   totals.forEach(function(row) {
     var lbl = row[0], val = row[1], isDiscount = row[2];
@@ -3374,7 +3385,7 @@ function exportPDF(id) {
   doc.setFillColor(30,30,38); doc.roundedRect(W-82, y, 66, 14, 2, 2, 'F');
   doc.setFillColor(240,165,0); doc.rect(W-82, y, 2.5, 14, 'F');
   doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(200,160,0);
-  doc.text('TOTAL', W-75, y+5.5);
+  doc.text(ivaPct > 0 ? 'TOTAL' : 'TOTAL S/IVA', W-75, y+5.5);
   doc.setFontSize(13); doc.setTextColor(255,255,255);
   doc.text(fmt(q.total), W-16, y+10, {align:'right'});
   y += 22;
