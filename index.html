@@ -738,9 +738,10 @@
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.7);
-    z-index: 99;
+    z-index: 150;
+    pointer-events: none;
   }
-  #sidebar-backdrop.open { display: block; }
+  #sidebar-backdrop.open { display: block; pointer-events: all; }
 
   /* Mobile hamburger button */
   #menu-toggle {
@@ -855,6 +856,20 @@
 
     /* Dashboard activity panels full width */
     #view-dashboard .two-col { grid-template-columns: 1fr; }
+
+    /* Inventario header stacks on mobile */
+    .inv-header-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .inv-header-btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .inv-header-btns .btn { flex: 1; justify-content: center; min-width: 0; }
 
     /* Filter bar scroll */
     .filter-bar {
@@ -1348,8 +1363,8 @@
 
       <!-- ====== INVENTARIO ====== -->
       <div class="view" id="view-inventario">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <div class="filter-bar" style="margin-bottom:0;flex-wrap:wrap">
+        <div class="inv-header-row">
+          <div class="filter-bar" style="margin-bottom:0">
             <button class="filter-btn active" onclick="filterInv('Todos',this)">Todos</button>
             <button class="filter-btn" onclick="filterInv('Consolas de mezcla',this)">Consolas</button>
             <button class="filter-btn" onclick="filterInv('Amplificadores PA',this)">Amplif. PA</button>
@@ -1368,7 +1383,7 @@
             <button class="filter-btn" onclick="filterInv('Sintetizadores y módulos',this)">Sintetizadores</button>
             <button class="filter-btn" onclick="filterInv('Amplificadores de teclado',this)">Amplif. Teclado</button>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+          <div class="inv-header-btns">
             <button class="btn btn-secondary" onclick="openScanner('alta')" title="Alta rápida por QR/Código de barras" style="gap:6px">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12" stroke-width="2.5"/><line x1="7" y1="8" x2="7" y2="16" stroke-width="1.5"/><line x1="11" y1="8" x2="11" y2="16" stroke-width="1.5"/><line x1="17" y1="8" x2="17" y2="16" stroke-width="1.5"/></svg>
               Escanear
