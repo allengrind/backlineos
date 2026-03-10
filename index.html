@@ -84,6 +84,7 @@
     position: fixed;
     left: 0; top: 0; bottom: 0;
     z-index: 100;
+    padding-top: env(safe-area-inset-top);
   }
 
   .logo-area {
@@ -194,12 +195,14 @@
 
   /* TOPBAR */
   #topbar {
-    height: 60px;
+    height: calc(60px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
-    padding: 0 28px;
+    padding-left: 28px;
+    padding-right: 28px;
     gap: 16px;
     position: sticky;
     top: 0;
@@ -832,7 +835,7 @@
     #main { margin-left: 0 !important; width: 100% !important; }
     #menu-toggle { display: block; }
     #bottom-nav { display: block; }
-    #topbar { padding: 0 14px; height: 54px; }
+    #topbar { padding-left: 14px; padding-right: 14px; height: calc(54px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
     .topbar-breadcrumb { display: none; }
     .topbar-search { width: 160px; }
     #content { padding: 14px 12px 80px; }
