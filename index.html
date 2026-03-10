@@ -1349,7 +1349,7 @@
       <!-- ====== INVENTARIO ====== -->
       <div class="view" id="view-inventario">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <div class="filter-bar" style="margin-bottom:0;flex-wrap:wrap;max-width:calc(100vw - 340px)">
+          <div class="filter-bar" style="margin-bottom:0;flex-wrap:wrap">
             <button class="filter-btn active" onclick="filterInv('Todos',this)">Todos</button>
             <button class="filter-btn" onclick="filterInv('Consolas de mezcla',this)">Consolas</button>
             <button class="filter-btn" onclick="filterInv('Amplificadores PA',this)">Amplif. PA</button>
@@ -1396,6 +1396,7 @@
               <tbody id="tabla-inventario"></tbody>
             </table>
           </div>
+          <div class="mobile-cards" id="mobile-inv-cards"></div>
         </div>
       </div>
 
@@ -1468,6 +1469,7 @@
               <tbody id="tabla-cotizaciones"></tbody>
             </table>
           </div>
+          <div class="mobile-cards" id="mobile-cot-cards"></div>
         </div>
       </div>
 
