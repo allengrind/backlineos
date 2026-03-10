@@ -2634,6 +2634,7 @@ function renderClientes() {
   }).join('');
 
   // Mobile cards for clientes
+  var mobileCards = document.getElementById('mobile-clientes-cards');
   if (mobileCards) {
     mobileCards.innerHTML = DB.clientes.map(function(c) {
       var cotCount = DB.cotizaciones.filter(function(q) { return q.clienteId == c.id; }).length;
