@@ -2774,7 +2774,7 @@ function renderClientes() {
       <div class="client-name">${c.nombre}</div>
       <div class="client-info">📞 ${c.tel || 'Sin tel'}</div>
       <div class="client-info">✉️ ${c.email || 'Sin email'}</div>
-      ' + (c.ciudad ? '<div class="client-info">📍 ' + c.ciudad + '</div>' : '') + '
+      ${c.ciudad ? `<div class="client-info">📍 ${c.ciudad}</div>` : ''}
       <div class="client-stat">
         <div class="client-stat-item"><div class="client-stat-val">${events}</div><div class="client-stat-lbl">Eventos</div></div>
         <div class="client-stat-item"><div class="client-stat-val">${quotes}</div><div class="client-stat-lbl">Cotiz.</div></div>
