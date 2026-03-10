@@ -2622,7 +2622,7 @@ function renderClientes() {
       <div class="client-name">${c.nombre}</div>
       <div class="client-info">📞 ${c.tel || 'Sin tel'}</div>
       <div class="client-info">✉️ ${c.email || 'Sin email'}</div>
-      ${c.ciudad ? `<div class="client-info">📍 ${c.ciudad}</div>` : ''}
+      ' + (c.ciudad ? '<div class="client-info">📍 ' + c.ciudad + '</div>' : '') + '
       <div class="client-stat">
         <div class="client-stat-item"><div class="client-stat-val">${events}</div><div class="client-stat-lbl">Eventos</div></div>
         <div class="client-stat-item"><div class="client-stat-val">${quotes}</div><div class="client-stat-lbl">Cotiz.</div></div>
@@ -2701,65 +2701,80 @@ function deleteEvento(id) {
 }
 
 function renderCalendar() {
-  const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  document.getElementById('cal-month-title').textContent = `${months[calMonth]} ${calYear}`;
+  var months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('cal-month-title').textContent = months[calMonth] + ' ' + calYear;
 
-  const hdr = document.getElementById('cal-headers');
-  hdr.innerHTML = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => `<div class="cal-header-day">${d}</div>`).join('');
+  var hdr = document.getElementById('cal-headers');
+  hdr.innerHTML = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(function(d) {
+    return '<div class="cal-header-day">' + d + '</div>';
+  }).join('');
 
-  const cal = document.getElementById('calendar');
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
-  const startOffset = (firstDay + 6) % 7;
-  const today = new Date();
+  var cal = document.getElementById('calendar');
+  var firstDay    = new Date(calYear, calMonth, 1).getDay();
+  var daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  var startOffset = (firstDay + 6) % 7;
+  var today       = new Date();
 
-  let cells = '';
-  for (let i=0; i<startOffset; i++) cells += '<div></div>';
+  var cells = '';
+  for (var i = 0; i < startOffset; i++) cells += '<div></div>';
 
-  for (let d=1; d<=daysInMonth; d++) {
-    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dayEvents = DB.eventos.filter(e => e.inicio <= dateStr && e.fin >= dateStr);
-    const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d;
-    cells += `<div class="cal-day ${isToday?'today':''} ${dayEvents.length?'has-event':''}">
-      <div class="cal-day-num">${d}</div>
-      ${dayEvents.slice(0,2).map(e => `<div class="cal-event-dot">● ${e.nombre}</div>`).join('')}
-    </div>`;
+  for (var d = 1; d <= daysInMonth; d++) {
+    var mm      = String(calMonth+1).padStart(2,'0');
+    var dd      = String(d).padStart(2,'0');
+    var dateStr = calYear + '-' + mm + '-' + dd;
+    var dayEvents = DB.eventos.filter(function(e) { return e.inicio <= dateStr && e.fin >= dateStr; });
+    var isToday   = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d;
+    var todayClass = isToday ? ' today' : '';
+    var evClass    = dayEvents.length ? ' has-event' : '';
+    var dots = dayEvents.slice(0,2).map(function(e) {
+      return '<div class="cal-event-dot">● ' + e.nombre + '</div>';
+    }).join('');
+    cells += '<div class="cal-day' + todayClass + evClass + '">' +
+      '<div class="cal-day-num">' + d + '</div>' +
+      dots +
+    '</div>';
   }
   cal.innerHTML = cells;
 
-  const lista = document.getElementById('eventos-lista');
-  const monthEvents = DB.eventos.filter(e => {
-    const s = new Date(e.inicio+'T00:00:00'); const f = new Date(e.fin+'T00:00:00');
-    return (s.getFullYear()===calYear && s.getMonth()===calMonth) || (f.getFullYear()===calYear && f.getMonth()===calMonth);
+  // Desktop events list
+  var lista = document.getElementById('eventos-lista');
+  var monthEvents = DB.eventos.filter(function(e) {
+    var s = new Date(e.inicio+'T00:00:00');
+    var f = new Date(e.fin+'T00:00:00');
+    return (s.getFullYear()===calYear && s.getMonth()===calMonth) ||
+           (f.getFullYear()===calYear && f.getMonth()===calMonth);
   });
 
   if (monthEvents.length === 0) {
-    lista.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Sin eventos</div><div class="empty-sub">No hay eventos este mes</div></div>`;
-    return;
+    lista.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Sin eventos</div><div class="empty-sub">No hay eventos este mes</div></div>';
+  } else {
+    lista.innerHTML = monthEvents.map(function(e) {
+      var cli = DB.clientes.find(function(c) { return c.id == e.clienteId; });
+      var html = '<div style="background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:14px;margin-bottom:10px">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+      html += '<div>';
+      html += '<div style="font-weight:600;font-size:14px;margin-bottom:4px">' + e.nombre + '</div>';
+      if (cli) html += '<div style="font-size:12px;color:var(--text2)">👥 ' + cli.nombre + '</div>';
+      if (e.lugar) html += '<div style="font-size:12px;color:var(--text2)">📍 ' + e.lugar + '</div>';
+      html += '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text3);margin-top:6px">' + e.inicio + ' → ' + e.fin + '</div>';
+      html += '</div>';
+      html += '<button class="btn btn-danger btn-sm" onclick="deleteEvento(' + e.id + ')">🗑️</button>';
+      html += '</div></div>';
+      return html;
+    }).join('');
   }
 
-  lista.innerHTML = monthEvents.map(e => {
-    const cli = DB.clientes.find(c => c.id == e.clienteId);
-    return `<div style="background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:14px;margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div style="font-weight:600;font-size:14px;margin-bottom:4px">${e.nombre}</div>
-          ${cli ? `<div style="font-size:12px;color:var(--text2)">👥 ${cli.nombre}</div>` : ''}
-          ${e.lugar ? `<div style="font-size:12px;color:var(--text2)">📍 ${e.lugar}</div>` : ''}
-          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text3);margin-top:6px">${e.inicio} → ${e.fin}</div>
-        </div>
-        <button class="btn btn-danger btn-sm" onclick="deleteEvento(${e.id})">🗑️</button>
-      </div>
-    </div>`;
-  }).join('');
   // Mobile eventos list
   var mobileEv = document.getElementById('mobile-eventos-cards');
   if (mobileEv) {
+    var currentYear  = calYear;
+    var currentMonth = calMonth;
     var allEvs = DB.eventos.filter(function(ev) {
       if (!ev.inicio) return false;
-      var d = new Date(ev.inicio + 'T12:00:00');
-      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+      var d2 = new Date(ev.inicio + 'T12:00:00');
+      return d2.getFullYear() === currentYear && d2.getMonth() === currentMonth;
     }).sort(function(a,b) { return a.inicio.localeCompare(b.inicio); });
+
     if (allEvs.length === 0) {
       mobileEv.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Sin eventos este mes</div></div>';
     } else {
@@ -2778,7 +2793,6 @@ function renderCalendar() {
       }).join('');
     }
   }
-
 }
 
 // ==================== COTIZACIONES ====================
@@ -3622,7 +3636,7 @@ function setStatus(msg, type) {
   const el = document.getElementById('scanner-status');
   const dot = document.getElementById('scanner-status-dot');
   const txt = document.getElementById('scanner-status-text');
-  el.className = type ? `${type}` : '';
+  el.className = type ? type : '';
   txt.textContent = msg;
   dot.style.color = type === 'found' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--accent)';
 }
