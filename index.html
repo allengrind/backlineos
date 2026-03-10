@@ -823,9 +823,10 @@
       transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
       width: 280px;
       z-index: 200;
+      position: fixed !important;
     }
     #sidebar.open { transform: translateX(0); }
-    #main { margin-left: 0; }
+    #main { margin-left: 0 !important; width: 100% !important; }
     #menu-toggle { display: block; }
     #bottom-nav { display: block; }
     #topbar { padding: 0 14px; height: 54px; }
@@ -1222,45 +1223,45 @@
     </div>
     <nav>
       <div class="nav-section">Principal</div>
-      <button class="nav-btn active" onclick="showView('dashboard')">
+      <button class="nav-btn active" onclick="showView('dashboard');if(window.innerWidth<=768)closeSidebar()">
         <span class="nav-icon">⚡</span> Dashboard
       </button>
-      <button class="nav-btn" onclick="showView('inventario')">
+      <button class="nav-btn" onclick="showView('inventario');if(window.innerWidth<=768)closeSidebar()">
         <span class="nav-icon">📦</span> Inventario
         <span class="badge" id="badge-inv">0</span>
       </button>
-      <button class="nav-btn" onclick="showView('disponibilidad')">
+      <button class="nav-btn" onclick="showView('disponibilidad');if(window.innerWidth<=768)closeSidebar()">
         <span class="nav-icon">📅</span> Disponibilidad
       </button>
 
       <div class="nav-section">Negocio</div>
-      <button class="nav-btn" onclick="showView('clientes')">
+      <button class="nav-btn" onclick="showView('clientes');if(window.innerWidth<=768)closeSidebar()">
         <span class="nav-icon">👥</span> Clientes
         <span class="badge" id="badge-cli">0</span>
       </button>
-      <button class="nav-btn" onclick="showView('cotizaciones')">
+      <button class="nav-btn" onclick="showView('cotizaciones');if(window.innerWidth<=768)closeSidebar()">
         <span class="nav-icon">📋</span> Cotizaciones
         <span class="badge" id="badge-cot">0</span>
       </button>
 
       <div class="nav-section">Operaciones</div>
-      <button class="nav-btn" onclick="showView('movimientos')">
+      <button class="nav-btn" onclick="showView('movimientos');if(window.innerWidth<=768)closeSidebar()">
         <span class="nav-icon">🔄</span> Check-in / Check-out
         <span class="badge" id="badge-mov">0</span>
       </button>
-      <button class="nav-btn" onclick="showView('reportes')">
+      <button class="nav-btn" onclick="showView('reportes');if(window.innerWidth<=768)closeSidebar()">
         <span class="nav-icon">📈</span> Reportes
       </button>
-      <button class="nav-btn" onclick="showView('logistica')">
+      <button class="nav-btn" onclick="showView('logistica');if(window.innerWidth<=768)closeSidebar()">
         <span class="nav-icon">🚚</span> Logística de Viajes
       </button>
-      <button class="nav-btn" onclick="showView('alertas')">
+      <button class="nav-btn" onclick="showView('alertas');if(window.innerWidth<=768)closeSidebar()">
         <span class="nav-icon">🔔</span> Alertas
         <span class="badge" id="badge-alertas" style="display:none">0</span>
       </button>
 
       <div class="nav-section">Sistema</div>
-      <button class="nav-btn" onclick="showView('config')">
+      <button class="nav-btn" onclick="showView('config');if(window.innerWidth<=768)closeSidebar()">
         <span class="nav-icon">⚙️</span> Configuración
       </button>
     </nav>
