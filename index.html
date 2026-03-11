@@ -5014,8 +5014,13 @@ function processAltaMasivaRows(rawRows) {
   if (!rawRows || rawRows.length < 2) {
     toast('El archivo está vacío o no tiene datos', 'var(--red)'); return;
   }
-  // Detect header row
-  var headerRow = rawRows[0].map(function(h){ return String(h).trim().toLowerCase(); });
+  // Auto-detect header row — scan first 5 rows for one containing "nombre"
+  var headerRowIdx = 0;
+  for (var i = 0; i < Math.min(5, rawRows.length); i++) {
+    var candidate = rawRows[i].map(function(h){ return String(h).trim().toLowerCase(); });
+    if (candidate.includes('nombre')) { headerRowIdx = i; break; }
+  }
+  var headerRow = rawRows[headerRowIdx].map(function(h){ return String(h).trim().toLowerCase(); });
   // Map headers to fields
   var fieldMap = {}; // colIndex → fieldName
   headerRow.forEach(function(h, i) {
@@ -5029,7 +5034,7 @@ function processAltaMasivaRows(rawRows) {
 
   // Parse data rows
   var parsed = [];
-  for (var r = 1; r < rawRows.length; r++) {
+  for (var r = headerRowIdx + 1; r < rawRows.length; r++) {
     var row = rawRows[r];
     if (row.every(function(c){ return !String(c).trim(); })) continue; // skip empty rows
     var item = { nombre:'', cat:'', marca:'', modelo:'', serie:'', cantidad:1, estado:'Disponible', precio:0, valor:0, notas:'' };
