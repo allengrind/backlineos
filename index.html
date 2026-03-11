@@ -535,7 +535,9 @@
   }
   @media (max-width: 768px) {
     input, select, textarea { font-size: 16px; padding: 11px 12px; }
-    .quote-item-row input, .quote-item-row select { font-size: 14px; padding: 8px 8px; }
+  
+  .rpt-row:hover { background: var(--surface2); }
+  .quote-item-row input, .quote-item-row select { font-size: 14px; padding: 8px 8px; }
   }
   input:focus, select:focus, textarea:focus {
     border-color: var(--accent);
@@ -2720,22 +2722,53 @@ function pillEstado(estado) {
 }
 
 // ==================== CLIENTES ====================
+var _editingClienteId = null;
+
 function saveCliente() {
   const nombre = document.getElementById('cli-nombre').value.trim();
   if (!nombre) { toast('Ingresa el nombre del cliente', 'var(--red)'); return; }
-  DB.clientes.push({
-    id: Date.now(),
-    nombre,
-    contacto: document.getElementById('cli-contacto').value,
-    tel: document.getElementById('cli-tel').value,
-    email: document.getElementById('cli-email').value,
-    ciudad: document.getElementById('cli-ciudad').value,
-    notas: document.getElementById('cli-notas').value,
-    creado: new Date().toISOString()
-  });
+  if (_editingClienteId) {
+    var cli = DB.clientes.find(function(c){ return c.id == _editingClienteId; });
+    if (cli) {
+      cli.nombre   = nombre;
+      cli.contacto = document.getElementById('cli-contacto').value;
+      cli.tel      = document.getElementById('cli-tel').value;
+      cli.email    = document.getElementById('cli-email').value;
+      cli.ciudad   = document.getElementById('cli-ciudad').value;
+      cli.notas    = document.getElementById('cli-notas').value;
+      cli.editado  = new Date().toISOString();
+    }
+    _editingClienteId = null;
+  } else {
+    DB.clientes.push({
+      id: Date.now(),
+      nombre,
+      contacto: document.getElementById('cli-contacto').value,
+      tel: document.getElementById('cli-tel').value,
+      email: document.getElementById('cli-email').value,
+      ciudad: document.getElementById('cli-ciudad').value,
+      notas: document.getElementById('cli-notas').value,
+      creado: new Date().toISOString()
+    });
+  }
   saveDB(); closeModal('modal-cliente'); render();
   toast('✅ Cliente registrado');
   ['cli-nombre','cli-contacto','cli-tel','cli-email','cli-ciudad','cli-notas'].forEach(id => document.getElementById(id).value = '');
+}
+
+function editCliente(id) {
+  var cli = DB.clientes.find(function(c){ return c.id == id; });
+  if (!cli) return;
+  _editingClienteId = id;
+  document.getElementById('cli-nombre').value   = cli.nombre   || '';
+  document.getElementById('cli-contacto').value = cli.contacto || '';
+  document.getElementById('cli-tel').value      = cli.tel      || '';
+  document.getElementById('cli-email').value    = cli.email    || '';
+  document.getElementById('cli-ciudad').value   = cli.ciudad   || '';
+  document.getElementById('cli-notas').value    = cli.notas    || '';
+  // Update modal title
+  document.querySelector('#modal-cliente .modal-title').textContent = 'Editar Cliente';
+  document.getElementById('modal-cliente').classList.add('open');
 }
 
 function deleteCliente(id) {
@@ -2762,6 +2795,12 @@ function renderClientes() {
       <div class="client-stat">
         <div class="client-stat-item"><div class="client-stat-val">${events}</div><div class="client-stat-lbl">Eventos</div></div>
         <div class="client-stat-item"><div class="client-stat-val">${quotes}</div><div class="client-stat-lbl">Cotiz.</div></div>
+        <div class="client-stat-item">
+          <button class="btn btn-secondary btn-sm" onclick="editCliente(${c.id})" style="font-size:12px" title="Editar cliente">✏️</button>
+        </div>
+        <div class="client-stat-item">
+          <button class="btn btn-secondary btn-sm" onclick="exportClientReport(${c.id})" style="font-size:12px" title="Reporte global PDF">📋</button>
+        </div>
         <div class="client-stat-item">
           <button class="btn btn-danger btn-sm" onclick="deleteCliente(${c.id})" style="font-size:12px">🗑️</button>
         </div>
@@ -3352,6 +3391,298 @@ function drawTableRow(doc, item, y, idx, showPrecio) {
 }
 
 // ==================== PDF COTIZACIÓN ====================
+// ==================== REPORTE GLOBAL POR CLIENTE ====================
+var _rptClienteId = null;
+
+function exportClientReport(clienteId) {
+  var cli = DB.clientes.find(function(c){ return c.id == clienteId; });
+  if (!cli) return;
+  _rptClienteId = clienteId;
+
+  document.getElementById('rpt-cliente-nombre').textContent = cli.nombre;
+
+  // Default dates: last 12 months
+  var now   = new Date();
+  var from  = new Date(now.getFullYear()-1, now.getMonth(), now.getDate());
+  document.getElementById('rpt-fecha-desde').value = from.toISOString().slice(0,10);
+  document.getElementById('rpt-fecha-hasta').value = now.toISOString().slice(0,10);
+
+  refreshReporteList();
+  document.getElementById('modal-reporte-cliente').classList.add('open');
+}
+
+function refreshReporteList() {
+  if (!_rptClienteId) return;
+  var desde = document.getElementById('rpt-fecha-desde').value;
+  var hasta = document.getElementById('rpt-fecha-hasta').value;
+
+  var quotes = DB.cotizaciones
+    .filter(function(q){ return q.clienteId == _rptClienteId; })
+    .sort(function(a,b){ return new Date(a.creado)-new Date(b.creado); });
+
+  var list = document.getElementById('rpt-cot-list');
+  if (!quotes.length) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text3)">Sin cotizaciones</div>';
+    updateRptResumen(); return;
+  }
+
+  var fmt = function(v){ return '$'+(v||0).toLocaleString('es-MX',{minimumFractionDigits:2}); };
+
+  list.innerHTML = '';
+  quotes.forEach(function(q) {
+    var qDate   = (q.fecha || q.creado || '').slice(0,10);
+    var inRange = (!desde || qDate >= desde) && (!hasta || qDate <= hasta);
+    var selected = inRange;
+
+    var div = document.createElement('div');
+    div.dataset.id      = q.id;
+    div.dataset.selected = selected ? '1' : '0';
+    div.style.cssText   = 'display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s,border-left .15s;border-left:3px solid transparent';
+    if (selected) {
+      div.style.background  = 'rgba(240,165,0,0.08)';
+      div.style.borderLeft  = '3px solid var(--accent)';
+    }
+
+    // Checkbox visual
+    var chkBox = document.createElement('div');
+    chkBox.className = 'rpt-chk-box';
+    chkBox.style.cssText = 'width:20px;height:20px;border-radius:5px;border:2px solid;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s';
+    chkBox.style.borderColor  = selected ? 'var(--accent)' : 'var(--border)';
+    chkBox.style.background   = selected ? 'var(--accent)' : 'transparent';
+    chkBox.style.color        = selected ? '#1a1a1a' : 'transparent';
+    chkBox.textContent        = '✓';
+
+    // Content
+    var info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:0';
+    info.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center">'
+        + '<span style="font-family:var(--font-mono);font-size:11px;font-weight:bold;color:'+(selected?'var(--accent)':'var(--text3)')+'">'+q.folio+'</span>'
+        + '<span style="font-weight:bold;font-size:12px;color:var(--text1)">'+fmt(q.total)+'</span>'
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--text2);margin-top:3px">'+(q.evento||'Sin evento')+'</div>'
+      + '<div style="font-size:10px;color:var(--text3);margin-top:2px">'
+        + (q.fecha ? '📅 '+q.fecha : '')
+        + (q.lugar ? '  📍 '+q.lugar.substring(0,28) : '')
+        + '  · '+((q.items||[]).length)+' equipos'
+      + '</div>';
+
+    div.appendChild(chkBox);
+    div.appendChild(info);
+
+    div.addEventListener('click', function() {
+      var sel = this.dataset.selected === '1';
+      sel = !sel;
+      this.dataset.selected = sel ? '1' : '0';
+      // Update styles
+      this.style.background  = sel ? 'rgba(240,165,0,0.08)' : '';
+      this.style.borderLeft  = sel ? '3px solid var(--accent)' : '3px solid transparent';
+      var cb = this.querySelector('.rpt-chk-box');
+      cb.style.borderColor = sel ? 'var(--accent)' : 'var(--border)';
+      cb.style.background  = sel ? 'var(--accent)'  : 'transparent';
+      cb.style.color       = sel ? '#1a1a1a'         : 'transparent';
+      var sp = this.querySelector('span');
+      if (sp) sp.style.color = sel ? 'var(--accent)' : 'var(--text3)';
+      updateRptResumen();
+    });
+
+    list.appendChild(div);
+  });
+
+  updateRptResumen();
+}
+
+function rptSelectAll(val) {
+  document.querySelectorAll('#rpt-cot-list [data-id]').forEach(function(div) {
+    div.dataset.selected = val ? '1' : '0';
+    div.style.background  = val ? 'rgba(240,165,0,0.08)' : '';
+    div.style.borderLeft  = val ? '3px solid var(--accent)' : '3px solid transparent';
+    var cb = div.querySelector('.rpt-chk-box');
+    if (cb) {
+      cb.style.borderColor = val ? 'var(--accent)' : 'var(--border)';
+      cb.style.background  = val ? 'var(--accent)'  : 'transparent';
+      cb.style.color       = val ? '#1a1a1a'         : 'transparent';
+    }
+    var sp = div.querySelector('span');
+    if (sp) sp.style.color = val ? 'var(--accent)' : 'var(--text3)';
+  });
+  updateRptResumen();
+}
+
+function updateRptResumen() {
+  var ids = Array.from(document.querySelectorAll('#rpt-cot-list [data-selected="1"]'))
+    .map(function(d){ return d.dataset.id; });
+  var quotes = ids.map(function(id){ return DB.cotizaciones.find(function(q){ return q.id == id; }); }).filter(Boolean);
+  var total = quotes.reduce(function(s,q){ return s+(q.total||0); },0);
+  var items = quotes.reduce(function(s,q){ return s+(q.items||[]).length; },0);
+  var fmt = function(v){ return '$'+v.toLocaleString('es-MX',{minimumFractionDigits:2}); };
+  var res = document.getElementById('rpt-resumen');
+  if (!quotes.length) {
+    res.innerHTML = '<span style="color:var(--text3)">Ninguna cotización seleccionada</span>'; return;
+  }
+  res.innerHTML = '<span style="color:var(--text2)">Seleccionadas: </span><strong style="color:var(--accent)">'+quotes.length+'</strong>'
+    + ' &nbsp;·&nbsp; <span style="color:var(--text2)">Equipos: </span><strong style="color:var(--text1)">'+items+'</strong>'
+    + ' &nbsp;·&nbsp; <span style="color:var(--text2)">Total global: </span><strong style="color:var(--accent)">'+fmt(total)+'</strong>';
+}
+
+function generateClientReport() {
+  var ids = Array.from(document.querySelectorAll('#rpt-cot-list [data-selected="1"]'))
+    .map(function(d){ return d.dataset.id; });
+  if (!ids.length) { toast('Selecciona al menos una cotización', 'var(--accent)'); return; }
+
+  if (!_libCache['jspdf']) {
+    requireLib('jspdf', function(ok){ if (ok) generateClientReport(); });
+    return;
+  }
+
+  closeModal('modal-reporte-cliente');
+
+  var cli = DB.clientes.find(function(c){ return c.id == _rptClienteId; });
+  var quotes = ids.map(function(id){ return DB.cotizaciones.find(function(q){ return q.id == id; }); })
+    .filter(Boolean)
+    .sort(function(a,b){ return new Date(a.creado)-new Date(b.creado); });
+
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+  var W = 215.9;
+  var fmt = function(v){ return '$'+(v||0).toLocaleString('es-MX',{minimumFractionDigits:2}); };
+
+  // ══ PORTADA ══
+  doc.setFillColor(255,255,255); doc.rect(0,0,W,279,'F');
+  doc.setFillColor(240,165,0); doc.rect(0,0,W,4,'F');
+  doc.setFillColor(248,248,250); doc.rect(0,4,W,52,'F');
+  try { doc.addImage(LOGO_B64,'JPEG',14,10,32,32); } catch(e){}
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(17); doc.setTextColor(30,30,40);
+  doc.text(DB.config.empresa||'EKO Backline', 52, 22);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(130,130,145);
+  doc.text('Backline & Stage Equipment', 52, 28);
+  var contactLine = [DB.config.tel, DB.config.email].filter(Boolean).join('   ·   ');
+  if (contactLine) doc.text(contactLine, 52, 34);
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(240,165,0);
+  doc.text('REPORTE GLOBAL', W-16, 22, {align:'right'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(100,100,115);
+  doc.text(new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}), W-16, 30, {align:'right'});
+
+  doc.setDrawColor(220,220,228); doc.setLineWidth(0.3);
+  doc.line(14,58,W-14,58);
+
+  // Cliente card
+  var cy = 66;
+  doc.setFillColor(245,245,248); doc.roundedRect(14,cy,W-28,38,2,2,'F');
+  doc.setFillColor(240,165,0); doc.rect(14,cy,3,38,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(180,140,0);
+  doc.text('CLIENTE', 22, cy+8);
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(30,30,40);
+  doc.text(cli.nombre, 22, cy+18);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(100,100,115);
+  var cliInfo = [cli.tel?'Tel: '+cli.tel:null, cli.email||null, cli.ciudad||null].filter(Boolean).join('   ·   ');
+  doc.text(cliInfo, 22, cy+27);
+  if (cli.rfc) doc.text('RFC: '+cli.rfc, 22, cy+34);
+
+  // Stats
+  var totalGlobal = quotes.reduce(function(s,q){ return s+(q.total||0);},0);
+  var totalItems  = quotes.reduce(function(s,q){ return s+(q.items||[]).length;},0);
+  var sy = cy+46;
+  var stats = [{label:'Cotizaciones',val:quotes.length},{label:'Equipos totales',val:totalItems},{label:'Valor global',val:fmt(totalGlobal)}];
+  var sw = (W-28)/stats.length;
+  stats.forEach(function(st,i){
+    var sx=14+i*sw;
+    doc.setFillColor(250,246,235); doc.roundedRect(sx+1,sy,sw-2,22,2,2,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(240,165,0);
+    doc.text(String(st.val), sx+sw/2, sy+13, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(130,130,145);
+    doc.text(st.label.toUpperCase(), sx+sw/2, sy+20, {align:'center'});
+  });
+
+  // Índice
+  var iy = sy+32;
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(30,30,40);
+  doc.text('ÍNDICE DE COTIZACIONES', 14, iy);
+  doc.setFillColor(240,165,0); doc.rect(14,iy+2,50,0.8,'F');
+  iy+=10;
+
+  quotes.forEach(function(q,i){
+    if (iy>250) { doc.addPage(); iy=20; }
+    var rowBg=(i%2===0)?[248,248,250]:[255,255,255];
+    doc.setFillColor(rowBg[0],rowBg[1],rowBg[2]); doc.roundedRect(14,iy,W-28,12,1,1,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(240,165,0);
+    doc.text(String(i+1), 20, iy+8);
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(30,30,40);
+    doc.text(q.folio||'', 28, iy+8);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(80,80,95);
+    doc.text((q.evento||'Sin evento').substring(0,35), 65, iy+8);
+    doc.setTextColor(130,130,145);
+    doc.text(q.fecha||'', W-60, iy+8);
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(30,30,40);
+    doc.text(fmt(q.total), W-16, iy+8, {align:'right'});
+    iy+=13;
+  });
+
+  // Gran total
+  iy+=2;
+  doc.setFillColor(30,30,38); doc.roundedRect(14,iy,W-28,14,2,2,'F');
+  doc.setFillColor(240,165,0); doc.rect(14,iy,3,14,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(200,160,0);
+  doc.text('TOTAL GLOBAL', 22, iy+9);
+  doc.setFontSize(12); doc.setTextColor(255,255,255);
+  doc.text(fmt(totalGlobal), W-16, iy+9.5, {align:'right'});
+
+  // Footer portada
+  doc.setFillColor(240,165,0); doc.rect(0,275,W,1.5,'F');
+  doc.setFillColor(248,248,250); doc.rect(0,276.5,W,10,'F');
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(150,150,165);
+  doc.text('Generado con BacklineOS  ·  '+(DB.config.empresa||''), W/2, 283, {align:'center'});
+
+  // ══ UNA PÁGINA POR COTIZACIÓN ══
+  quotes.forEach(function(q){
+    doc.addPage();
+    var y = pdfHeader(doc, q, 'Cotización');
+    y = drawTableHeader(doc, y, true);
+    (q.items||[]).forEach(function(item,i){
+      if (y>240) { doc.addPage(); y=20; y=drawTableHeader(doc,y,true); }
+      y = drawTableRow(doc,item,y,i,true);
+    });
+    y+=6;
+    var subtotal=q.subtotal||q.total;
+    var ivaPct=q.ivaPct??16;
+    var totals=[
+      ['Costo de traslado',fmt(q.traslado||0),false],
+      ['Costo de viáticos',fmt(q.viaticos||0),false],
+      ['SubTotal',fmt(subtotal+(q.extras||0)),false],
+    ];
+    if (ivaPct>0) totals.push(['IVA ('+ivaPct+'%)',fmt(q.iva||0),false]);
+    if (q.descPct>0) totals.push(['Descuento ('+q.descPct+'%)','-'+fmt(q.descuento||0),true]);
+    if (q.anticipo>0) totals.push(['Anticipo','-'+fmt(q.anticipo||0),false]);
+    totals.forEach(function(row){
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+      doc.setTextColor(row[2]?200:100,row[2]?60:100,row[2]?70:115);
+      doc.text(row[0],W-78,y); doc.text(row[1],W-16,y,{align:'right'});
+      doc.setDrawColor(235,235,240); doc.setLineWidth(0.2);
+      doc.line(W-80,y+2,W-16,y+2); y+=8;
+    });
+    y+=2;
+    doc.setFillColor(30,30,38); doc.roundedRect(W-82,y,66,14,2,2,'F');
+    doc.setFillColor(240,165,0); doc.rect(W-82,y,2.5,14,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(200,160,0);
+    doc.text(ivaPct>0?'TOTAL':'TOTAL S/IVA',W-75,y+5.5);
+    doc.setFontSize(13); doc.setTextColor(255,255,255);
+    doc.text(fmt(q.total),W-16,y+10,{align:'right'});
+    doc.setDrawColor(220,220,228); doc.setLineWidth(0.3);
+    doc.line(14,272,W-14,272);
+    doc.setFillColor(240,165,0); doc.rect(0,275,W,1.5,'F');
+    doc.setFillColor(248,248,250); doc.rect(0,276.5,W,10,'F');
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(150,150,165);
+    doc.text('Generado con BacklineOS  ·  '+(DB.config.empresa||''), W/2, 283, {align:'center'});
+  });
+
+  var filename='Reporte_'+(cli.nombre||'cliente').replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
+  doc.save(filename);
+  toast('📋 Reporte generado: '+quotes.length+' cotizaciones');
+}
+
+
 function exportPDF(id) {
   if (!_libCache['jspdf']) {
     requireLib('jspdf', function(ok) { if (ok) exportPDF(id); });
@@ -4605,8 +4936,9 @@ function renderReportes() {
   if (!desde || !hasta) { resetReportFilter(); return; }
 
   var cots = DB.cotizaciones.filter(function(q){
-    if (!q.fecha) return false;
-    return q.fecha >= desde && q.fecha <= hasta;
+    var d = (q.fecha || (q.creado||'').slice(0,10));
+    if (!d) return false;
+    return d >= desde && d <= hasta;
   });
 
   var totalIngresos = cots.reduce(function(s,q){ return s+q.total; }, 0);
@@ -4659,8 +4991,9 @@ function renderReportes() {
   // Ingresos por mes (bar chart CSS)
   var byMonth = {};
   DB.cotizaciones.forEach(function(q){
-    if (!q.fecha) return;
-    var mo = q.fecha.slice(0,7);
+    var d = q.fecha || (q.creado||'').slice(0,10);
+    if (!d) return;
+    var mo = d.slice(0,7);
     if (!byMonth[mo]) byMonth[mo] = { total:0, aprobado:0 };
     byMonth[mo].total += q.total;
     if (q.estado==='Aprobada'||q.estado==='Facturada') byMonth[mo].aprobado += q.total;
@@ -6407,7 +6740,7 @@ try { registerSW(); } catch(e) { console.warn('SW:', e); }
 </nav>
 
 <!-- ====== MODAL RIDER CHECK-OUT / CHECK-IN ====== -->
-<div class="modal-overlay" id="modal-rider-checkout" style="display:none">
+<div class="modal-overlay" id="modal-rider-checkout">
   <div class="modal" style="max-width:620px">
     <div class="modal-header">
       <div class="modal-title" id="rider-modal-title">🎛 Check-out por Rider</div>
@@ -6474,6 +6807,49 @@ try { registerSW(); } catch(e) { console.warn('SW:', e); }
     </div>
   </div>
 </div>
+<!-- MODAL REPORTE GLOBAL -->
+<div class="modal-overlay" id="modal-reporte-cliente">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">📋 Reporte Global — <span id="rpt-cliente-nombre"></span></div>
+      <button class="modal-close" onclick="closeModal('modal-reporte-cliente')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Filtros -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="form-group" style="margin:0">
+          <label>Desde</label>
+          <input type="date" id="rpt-fecha-desde" oninput="refreshReporteList()">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Hasta</label>
+          <input type="date" id="rpt-fecha-hasta" oninput="refreshReporteList()">
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <label style="margin:0;font-size:12px">COTIZACIONES DISPONIBLES</label>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="rptSelectAll(true)">Todas</button>
+          <button class="btn btn-secondary btn-sm" onclick="rptSelectAll(false)">Ninguna</button>
+        </div>
+      </div>
+
+      <!-- Lista de cotizaciones seleccionables -->
+      <div id="rpt-cot-list" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px"></div>
+
+      <!-- Resumen selección -->
+      <div id="rpt-resumen" style="margin-top:12px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text2)"></div>
+
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border)">
+      <button class="btn btn-secondary" onclick="closeModal('modal-reporte-cliente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="generateClientReport()">📄 Generar PDF</button>
+    </div>
+  </div>
+</div>
+
 
 </body>
 </html>
