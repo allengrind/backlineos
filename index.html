@@ -547,7 +547,7 @@
   .quote-items { margin-top: 0; }
   .quote-item-row {
     display: grid;
-    grid-template-columns: 1fr 80px 100px 36px;
+    grid-template-columns: 140px 1fr 80px 100px 36px;
     gap: 8px;
     margin-bottom: 8px;
     align-items: center;
@@ -2444,8 +2444,8 @@
       </div>
 
       <div class="quote-items">
-        <div style="display:grid;grid-template-columns:1fr 80px 100px 36px;gap:8px;margin-bottom:4px;padding:0 2px;">
-          <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase">Equipo</span>
+        <div style="display:grid;grid-template-columns:140px 1fr 80px 100px 36px;gap:8px;margin-bottom:4px;padding:0 2px;">
+          <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase">Categoría</span><span style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase">Equipo</span>
           <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase">Cant.</span>
           <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase">$/día</span>
           <span></span>
@@ -2956,24 +2956,73 @@ function populateCotSelects() {
   if (document.getElementById('cot-items').children.length === 0) addCotItem();
 }
 
+function buildEqOptions(catFilter, searchText) {
+  var filtered = DB.inventario.filter(function(e) {
+    var matchCat  = !catFilter  || e.cat === catFilter;
+    var matchText = !searchText || (e.nombre + ' ' + (e.marca||'') + ' ' + (e.modelo||'')).toLowerCase().indexOf(searchText.toLowerCase()) >= 0;
+    return matchCat && matchText;
+  });
+  if (!filtered.length) return '<option value="">Sin resultados</option>';
+  return filtered.map(function(e) {
+    return '<option value="' + e.id + '" data-precio="' + e.precio + '" data-id="' + (e.serie||e.id) + '" data-marca="' + (e.marca||'') + '">'
+      + e.nombre + (e.marca ? ' — ' + e.marca : '') + (e.modelo ? ' ' + e.modelo : '') + '</option>';
+  }).join('');
+}
+
+function onCotItemCatChange(catSel) {
+  var row    = catSel.closest('.quote-item-row');
+  var eqSel  = row.querySelector('.cot-eq-select');
+  var search = row.querySelector('.cot-eq-search');
+  eqSel.innerHTML = buildEqOptions(catSel.value, search ? search.value : '');
+  autofillPrecio(eqSel);
+}
+
+function onCotItemSearch(searchInput) {
+  var row   = searchInput.closest('.quote-item-row');
+  var catSel = row.querySelector('.cot-cat-select');
+  var eqSel  = row.querySelector('.cot-eq-select');
+  eqSel.innerHTML = buildEqOptions(catSel.value, searchInput.value);
+  autofillPrecio(eqSel);
+}
+
 function addCotItem() {
   const container = document.getElementById('cot-items');
   const div = document.createElement('div');
   div.className = 'quote-item-row';
-  const eqOptions = DB.inventario.map(e => `<option value="${e.id}" data-precio="${e.precio}" data-id="${e.serie||e.id}" data-marca="${e.marca||''}">${e.nombre} (${e.cat.split(' ')[0]})</option>`).join('');
-  div.innerHTML = `
-    <select onchange="autofillPrecio(this)">${eqOptions || '<option>Sin equipos</option>'}</select>
-    <input type="number" value="1" min="1" placeholder="Cant" oninput="recalcTotal()">
-    <input type="number" value="" placeholder="$/día" oninput="recalcTotal()">
-    <button class="remove-item-btn" onclick="this.parentElement.remove();recalcTotal()">×</button>
-  `;
+
+  // Build category options
+  var catOptions = '<option value="">Todas</option>' +
+    ['Drum Kits','Cymbals','Percussion','Amplifiers','Cabinets','Instruments','Keyboards','Accessories','Specials']
+    .map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
+
+  var eqOptions = buildEqOptions('', '');
+
+  div.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:4px">' +
+      '<select class="cot-cat-select" onchange="onCotItemCatChange(this)" style="font-size:12px;padding:4px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2)">' + catOptions + '</select>' +
+      '<input type="text" class="cot-eq-search" placeholder="🔍 Buscar..." oninput="onCotItemSearch(this)" style="font-size:12px;padding:4px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text1)">' +
+    '</div>' +
+    '<select class="cot-eq-select" onchange="autofillPrecio(this)">' + eqOptions + '</select>' +
+    '<input type="number" value="1" min="1" placeholder="Cant" oninput="recalcTotal()">' +
+    '<input type="number" value="" placeholder="$/día" oninput="recalcTotal()">' +
+    '<button class="remove-item-btn" onclick="this.parentElement.remove();recalcTotal()">×</button>';
+
   container.appendChild(div);
   recalcTotal();
 }
 
 function autofillPrecio(sel) {
+  if (!sel) {
+    // called without argument — find first unpriced row
+    document.querySelectorAll('.cot-eq-select').forEach(function(s){ autofillPrecio(s); });
+    return;
+  }
   const precio = sel.options[sel.selectedIndex]?.dataset.precio;
-  if (precio) { sel.parentElement.children[2].value = precio; recalcTotal(); }
+  if (precio) {
+    var row = sel.closest('.quote-item-row');
+    var precioInput = row.querySelector('input[placeholder="$/día"]');
+    if (precioInput) { precioInput.value = precio; recalcTotal(); }
+  }
 }
 
 function recalcTotal() {
@@ -2986,8 +3035,8 @@ function recalcTotal() {
 
   let subtotal = 0;
   document.querySelectorAll('.quote-item-row').forEach(row => {
-    const cant = parseFloat(row.children[1].value) || 0;
-    const precio = parseFloat(row.children[2].value) || 0;
+    const cant = parseFloat(row.querySelector('input[placeholder="Cant"]').value) || 0;
+    const precio = parseFloat(row.querySelector('input[placeholder="$/día"]').value) || 0;
     subtotal += cant * precio * dias;
   });
   const extras = traslado + viaticos;
@@ -3071,7 +3120,8 @@ function saveCotizacion() {
   if (!clienteId) { toast('Selecciona un cliente', 'var(--red)'); return; }
   const items = [];
   document.querySelectorAll('.quote-item-row').forEach(row => {
-    const sel = row.children[0];
+    const sel = row.querySelector('.cot-eq-select') || row.querySelector('select');
+    if (!sel || !sel.value) return;
     const eq = DB.inventario.find(e => e.id == sel.value);
     const opt = sel.options[sel.selectedIndex];
     items.push({
@@ -3080,8 +3130,8 @@ function saveCotizacion() {
       marca: eq ? (eq.marca||'') : (opt?.dataset.marca||''),
       nombre: eq ? eq.nombre : opt?.text || 'Item',
       notas: eq ? (eq.notas||'') : '',
-      cantidad: parseFloat(row.children[1].value) || 1,
-      precioDia: parseFloat(row.children[2].value) || 0
+      cantidad: parseFloat(row.querySelector('input[placeholder="Cant"]').value) || 1,
+      precioDia: parseFloat(row.querySelector('input[placeholder="$/día"]').value) || 0
     });
   });
   const dias = parseInt(document.getElementById('cot-dias').value) || 1;
