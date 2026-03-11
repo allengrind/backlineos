@@ -1480,22 +1480,15 @@
         <div class="inv-header-row">
           <div class="filter-bar" style="margin-bottom:0">
             <button class="filter-btn active" onclick="filterInv('Todos',this)">Todos</button>
-            <button class="filter-btn" onclick="filterInv('Consolas de mezcla',this)">Consolas</button>
-            <button class="filter-btn" onclick="filterInv('Amplificadores PA',this)">Amplif. PA</button>
-            <button class="filter-btn" onclick="filterInv('Cabinets y Speakers',this)">Cabinets</button>
-            <button class="filter-btn" onclick="filterInv('Monitores de piso',this)">Monitores</button>
-            <button class="filter-btn" onclick="filterInv('Micrófonos',this)">Micrófonos</button>
-            <button class="filter-btn" onclick="filterInv('DIs y Splitters',this)">DIs</button>
-            <button class="filter-btn" onclick="filterInv('Efectos y procesadores',this)">Efectos</button>
-            <button class="filter-btn" onclick="filterInv('Cables y conectores',this)">Cables</button>
-            <button class="filter-btn" onclick="filterInv('Stands y soportes',this)">Stands</button>
-            <button class="filter-btn" onclick="filterInv('Iluminación',this)">Iluminación</button>
-            <button class="filter-btn" onclick="filterInv('Baterías y percusión',this)">Baterías</button>
-            <button class="filter-btn" onclick="filterInv('Guitarras y amplificadores de guitarra',this)">Guitarras</button>
-            <button class="filter-btn" onclick="filterInv('Bajos y amplificadores de bajo',this)">Bajos</button>
-            <button class="filter-btn" onclick="filterInv('Teclados y pianos',this)">Teclados</button>
-            <button class="filter-btn" onclick="filterInv('Sintetizadores y módulos',this)">Sintetizadores</button>
-            <button class="filter-btn" onclick="filterInv('Amplificadores de teclado',this)">Amplif. Teclado</button>
+            <button class="filter-btn" onclick="filterInv('Drum Kits',this)">Drum Kits</button>
+            <button class="filter-btn" onclick="filterInv('Cymbals',this)">Cymbals</button>
+            <button class="filter-btn" onclick="filterInv('Percussion',this)">Percussion</button>
+            <button class="filter-btn" onclick="filterInv('Amplifiers',this)">Amplifiers</button>
+            <button class="filter-btn" onclick="filterInv('Cabinets',this)">Cabinets</button>
+            <button class="filter-btn" onclick="filterInv('Instruments',this)">Instruments</button>
+            <button class="filter-btn" onclick="filterInv('Keyboards',this)">Keyboards</button>
+            <button class="filter-btn" onclick="filterInv('Accessories',this)">Accessories</button>
+            <button class="filter-btn" onclick="filterInv('Specials',this)">Specials</button>
           </div>
           <div class="inv-header-btns">
             <button class="btn btn-secondary" onclick="openScanner('alta')" title="Alta rápida por QR/Código de barras" style="gap:6px">
@@ -2178,31 +2171,22 @@
           <label>Categoría *</label>
           <select id="eq-cat">
             <option value="">Selecciona...</option>
-            <optgroup label="── Audio PA ──">
-              <option>Consolas de mezcla</option>
-              <option>Amplificadores PA</option>
-              <option>Cabinets y Speakers</option>
-              <option>Monitores de piso</option>
+            <optgroup label="── Drums ──">
+              <option>Drum Kits</option>
+              <option>Cymbals</option>
+              <option>Percussion</option>
             </optgroup>
-            <optgroup label="── Micrófonos ──">
-              <option>Micrófonos</option>
-              <option>DIs y Splitters</option>
+            <optgroup label="── Amplification ──">
+              <option>Amplifiers</option>
+              <option>Cabinets</option>
             </optgroup>
-            <optgroup label="── Procesamiento ──">
-              <option>Efectos y procesadores</option>
+            <optgroup label="── Instruments ──">
+              <option>Instruments</option>
+              <option>Keyboards</option>
             </optgroup>
-            <optgroup label="── Accesorios ──">
-              <option>Cables y conectores</option>
-              <option>Stands y soportes</option>
-              <option>Iluminación</option>
-            </optgroup>
-            <optgroup label="── Backline ──">
-              <option>Baterías y percusión</option>
-              <option>Guitarras y amplificadores de guitarra</option>
-              <option>Bajos y amplificadores de bajo</option>
-              <option>Teclados y pianos</option>
-              <option>Sintetizadores y módulos</option>
-              <option>Amplificadores de teclado</option>
+            <optgroup label="── Other ──">
+              <option>Accessories</option>
+              <option>Specials</option>
             </optgroup>
           </select>
         </div>
@@ -3485,8 +3469,8 @@ function renderDashboard() {
   document.getElementById('stat-clientes').textContent = DB.clientes.length;
 
   // Categorias
-  const cats = ['Consolas de mezcla','Amplificadores PA','Cabinets y Speakers','Monitores de piso','Micrófonos','DIs y Splitters','Efectos y procesadores','Cables y conectores','Stands y soportes','Iluminación','Baterías y percusión','Guitarras y amplificadores de guitarra','Bajos y amplificadores de bajo','Teclados y pianos','Sintetizadores y módulos','Amplificadores de teclado'];
-  const icons = ['🎛️','🔋','🔊','📡','🎤','🔀','🎚️','🔌','🎙️','💡','🥁','🎸','🎸','🎹','🎛️','🔈'];
+  const cats = ['Drum Kits','Cymbals','Percussion','Amplifiers','Cabinets','Instruments','Keyboards','Accessories','Specials'];
+  const icons = ['🥁','🎵','🪘','🔋','🔊','🎸','🎹','🔧','⭐'];
   const catDiv = document.getElementById('dash-categorias');
   catDiv.innerHTML = cats.map((cat,i) => {
     const count = DB.inventario.filter(e=>e.cat===cat).reduce((s,e)=>s+e.cantidad,0);
@@ -4888,11 +4872,7 @@ function setupOfflineIndicator() {
 
 // ==================== ALTA MASIVA ====================
 var altaMasivaRows = [];
-var CATS = ['Consolas de mezcla','Amplificadores PA','Cabinets y Speakers','Monitores de piso',
-  'Micrófonos','DIs y Splitters','Efectos y procesadores','Cables y conectores',
-  'Stands y soportes','Iluminación','Baterías y percusión',
-  'Guitarras y amplificadores de guitarra','Bajos y amplificadores de bajo',
-  'Teclados y pianos','Sintetizadores y módulos','Amplificadores de teclado'];
+var CATS = ['Drum Kits','Cymbals','Percussion','Amplifiers','Cabinets','Instruments','Keyboards','Accessories','Specials'];
 var ESTADOS_VALIDOS = ['Disponible','Rentado','Mantenimiento','Revisión'];
 
 // Column name aliases → internal field
@@ -4917,9 +4897,9 @@ function descargarPlantilla() {
   if (typeof XLSX === 'undefined') { toast('SheetJS no disponible', 'var(--red)'); return; }
   var headers = ['Nombre','Categoría','Marca','Modelo','No. Serie','Cantidad','Estado','Precio/día','Valor reposición','Notas'];
   var ejemplo = [
-    ['Consola Allen & Heath SQ-6','Consolas de mezcla','Allen & Heath','SQ-6','SQ6-001',1,'Disponible',4500,95000,'48 canales'],
-    ['Micrófono Shure SM58','Micrófonos','Shure','SM58','',24,'Disponible',150,2800,''],
-    ['Cable XLR Canare 15m','Cables y conectores','Canare','L-4E6S','',50,'Disponible',80,600,'']
+    ['Consola Allen & Heath SQ-6','Accessories','Allen & Heath','SQ-6','SQ6-001',1,'Disponible',4500,95000,'48 canales'],
+    ['Micrófono Shure SM58','Accessories','Shure','SM58','',24,'Disponible',150,2800,''],
+    ['Cable XLR Canare 15m','Accessories','Canare','L-4E6S','',50,'Disponible',80,600,'']
   ];
   var ws = XLSX.utils.aoa_to_sheet([headers].concat(ejemplo));
   // Column widths
@@ -4933,9 +4913,9 @@ function descargarPlantilla() {
 function descargarPlantillaCSV() {
   var headers = 'Nombre,Categoría,Marca,Modelo,No. Serie,Cantidad,Estado,Precio/día,Valor reposición,Notas';
   var rows = [
-    '"Consola Allen & Heath SQ-6","Consolas de mezcla","Allen & Heath","SQ-6","SQ6-001",1,"Disponible",4500,95000,"48 canales"',
-    '"Micrófono Shure SM58","Micrófonos","Shure","SM58","",24,"Disponible",150,2800,""',
-    '"Cable XLR Canare 15m","Cables y conectores","Canare","L-4E6S","",50,"Disponible",80,600,""'
+    '"Consola Allen & Heath SQ-6","Accessories","Allen & Heath","SQ-6","SQ6-001",1,"Disponible",4500,95000,"48 canales"',
+    '"Micrófono Shure SM58","Accessories","Shure","SM58","",24,"Disponible",150,2800,""',
+    '"Cable XLR Canare 15m","Accessories","Canare","L-4E6S","",50,"Disponible",80,600,""'
   ];
   var csv = '\uFEFF' + headers + '\n' + rows.join('\n');
   var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
@@ -5050,7 +5030,7 @@ function processAltaMasivaRows(rawRows) {
     var errors = [];
     if (!item.nombre) errors.push('Sin nombre');
     if (item.cat && !CATS.includes(item.cat)) warnings.push('Categoría no reconocida: "' + item.cat + '"');
-    if (!item.cat) { item.cat = 'Cables y conectores'; warnings.push('Categoría asignada por defecto'); }
+    if (!item.cat) { item.cat = 'Accessories'; warnings.push('Categoría asignada por defecto'); }
     if (item.estado && !ESTADOS_VALIDOS.includes(item.estado)) { item.estado = 'Disponible'; warnings.push('Estado corregido a Disponible'); }
     if (!item.estado) item.estado = 'Disponible';
     parsed.push({ item: item, errors: errors, warnings: warnings, rowNum: r+1 });
@@ -6260,16 +6240,16 @@ setTimeout(function() {
 // Add demo data if empty
 if (DB.inventario.length === 0) {
   DB.inventario = [
-    { id:1, nombre:'Consola Allen & Heath SQ-6', cat:'Consolas de mezcla', estado:'Disponible', marca:'Allen & Heath', modelo:'SQ-6', serie:'SQ6-001', cantidad:1, precio:4500, valor:95000, notas:'48 canales, 36 buses', creado:new Date().toISOString() },
-    { id:2, nombre:'Consola Yamaha QL5', cat:'Consolas de mezcla', estado:'Rentado', marca:'Yamaha', modelo:'QL5', serie:'QL5-002', cantidad:1, precio:3800, valor:75000, notas:'', creado:new Date().toISOString() },
-    { id:3, nombre:'Amplificador Crown XLi 3500', cat:'Amplificadores PA', estado:'Disponible', marca:'Crown', modelo:'XLi 3500', serie:'CRW-003', cantidad:4, precio:800, valor:12000, notas:'', creado:new Date().toISOString() },
-    { id:4, nombre:'Cabinet RCF HDL 20-A', cat:'Cabinets y Speakers', estado:'Disponible', marca:'RCF', modelo:'HDL 20-A', serie:'RCF-004', cantidad:8, precio:1200, valor:45000, notas:'Line array activo', creado:new Date().toISOString() },
-    { id:5, nombre:'Micrófono Shure SM58', cat:'Micrófonos', estado:'Disponible', marca:'Shure', modelo:'SM58', serie:'-', cantidad:24, precio:150, valor:2800, notas:'', creado:new Date().toISOString() },
-    { id:6, nombre:'DI Box BSS AR-133', cat:'DIs y Splitters', estado:'Mantenimiento', marca:'BSS', modelo:'AR-133', serie:'BSS-006', cantidad:12, precio:200, valor:3500, notas:'2 unidades en reparación', creado:new Date().toISOString() },
-    { id:7, nombre:'Cable XLR Canare 15m', cat:'Cables y conectores', estado:'Disponible', marca:'Canare', modelo:'L-4E6S', serie:'-', cantidad:50, precio:80, valor:600, notas:'', creado:new Date().toISOString() },
-    { id:8, nombre:'Moving Head Beam 230W', cat:'Iluminación', estado:'Disponible', marca:'Robe', modelo:'BMFL Blade', serie:'ROB-008', cantidad:6, precio:2500, valor:85000, notas:'', creado:new Date().toISOString() },
-    { id:9, nombre:'Batería Pearl Masters Premium', cat:'Baterías y percusión', estado:'Disponible', marca:'Pearl', modelo:'Masters Premium', serie:'PRL-009', cantidad:1, precio:3500, valor:65000, notas:'Incluye platillos Zildjian', creado:new Date().toISOString() },
-    { id:10, nombre:'Amplificador de Guitarra Marshall JCM800', cat:'Guitarras y amplificadores de guitarra', estado:'Disponible', marca:'Marshall', modelo:'JCM800 2203', serie:'MAR-010', cantidad:2, precio:1800, valor:30000, notas:'', creado:new Date().toISOString() },
+    { id:1, nombre:'Consola Allen & Heath SQ-6', cat:'Accessories', estado:'Disponible', marca:'Allen & Heath', modelo:'SQ-6', serie:'SQ6-001', cantidad:1, precio:4500, valor:95000, notas:'48 canales, 36 buses', creado:new Date().toISOString() },
+    { id:2, nombre:'Consola Yamaha QL5', cat:'Accessories', estado:'Rentado', marca:'Yamaha', modelo:'QL5', serie:'QL5-002', cantidad:1, precio:3800, valor:75000, notas:'', creado:new Date().toISOString() },
+    { id:3, nombre:'Amplificador Crown XLi 3500', cat:'Amplifiers', estado:'Disponible', marca:'Crown', modelo:'XLi 3500', serie:'CRW-003', cantidad:4, precio:800, valor:12000, notas:'', creado:new Date().toISOString() },
+    { id:4, nombre:'Cabinet RCF HDL 20-A', cat:'Cabinets', estado:'Disponible', marca:'RCF', modelo:'HDL 20-A', serie:'RCF-004', cantidad:8, precio:1200, valor:45000, notas:'Line array activo', creado:new Date().toISOString() },
+    { id:5, nombre:'Micrófono Shure SM58', cat:'Accessories', estado:'Disponible', marca:'Shure', modelo:'SM58', serie:'-', cantidad:24, precio:150, valor:2800, notas:'', creado:new Date().toISOString() },
+    { id:6, nombre:'DI Box BSS AR-133', cat:'Accessories', estado:'Mantenimiento', marca:'BSS', modelo:'AR-133', serie:'BSS-006', cantidad:12, precio:200, valor:3500, notas:'2 unidades en reparación', creado:new Date().toISOString() },
+    { id:7, nombre:'Cable XLR Canare 15m', cat:'Accessories', estado:'Disponible', marca:'Canare', modelo:'L-4E6S', serie:'-', cantidad:50, precio:80, valor:600, notas:'', creado:new Date().toISOString() },
+    { id:8, nombre:'Moving Head Beam 230W', cat:'Accessories', estado:'Disponible', marca:'Robe', modelo:'BMFL Blade', serie:'ROB-008', cantidad:6, precio:2500, valor:85000, notas:'', creado:new Date().toISOString() },
+    { id:9, nombre:'Batería Pearl Masters Premium', cat:'Drum Kits', estado:'Disponible', marca:'Pearl', modelo:'Masters Premium', serie:'PRL-009', cantidad:1, precio:3500, valor:65000, notas:'Incluye platillos Zildjian', creado:new Date().toISOString() },
+    { id:10, nombre:'Amplificador de Guitarra Marshall JCM800', cat:'Instruments', estado:'Disponible', marca:'Marshall', modelo:'JCM800 2203', serie:'MAR-010', cantidad:2, precio:1800, valor:30000, notas:'', creado:new Date().toISOString() },
   ];
   DB.clientes = [
     { id:101, nombre:'Producciones Solís', contacto:'Carlos Solís', tel:'55 1234 5678', email:'carlos@solis.com', ciudad:'CDMX', notas:'Eventos corporativos grandes', creado:new Date().toISOString() },
