@@ -4582,59 +4582,115 @@ function fillMovFromFolio() {
   var q = DB.cotizaciones.find(function(x){ return x.id === cotId; });
   if (!q) return;
 
-  // Pre-fill shared fields
   document.getElementById('mov-cliente').value = q.clienteId || '';
   document.getElementById('mov-evento').value  = q.evento || '';
   if (q.fecha) document.getElementById('mov-fecha-retorno').value = q.fecha;
 
-  // Detect mode
   var activosDeEsteFolio = (DB.movimientos||[]).filter(function(m){
     return String(m.cotizacionId) === String(cotId) && m.estado === 'Activo';
   });
   var isEntrada = activosDeEsteFolio.length > 0;
   var btnTipo   = isEntrada ? 'Entrada' : 'Salida';
   var color     = isEntrada ? 'var(--blue)' : 'var(--accent)';
+  var colorHex  = isEntrada ? '#4a9eff' : '#f0a500';
   var icon      = isEntrada ? '⬇' : '⬆';
   var label     = isEntrada ? 'CHECK-IN — equipos en campo' : 'CHECK-OUT — equipos del rider';
 
   document.getElementById('mov-tipo').value = btnTipo;
   onMovTipoChange();
 
-  // Build items list
   var items = isEntrada
     ? activosDeEsteFolio.map(function(m){
         return { equipoId: m.equipoId, nombre: m.equipoNombre, cantidad: m.cantidad||1, responsable: m.responsable||'' };
       })
     : (q.items||[]);
 
-  // Build panel HTML
-  var html = '<div style="margin-top:0;border:1px solid ' + color + ';border-radius:8px;overflow:hidden">';
-  html += '<div style="background:rgba(0,0,0,0.25);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px">';
-  html += '<span style="font-size:10px;font-family:var(--font-mono);letter-spacing:1px;color:' + color + '">' + icon + ' ' + label + ' (' + items.length + ')</span>';
-  html += '<button type="button" class="btn btn-primary btn-sm" id="btn-registrar-todos" style="font-size:11px;padding:5px 14px;flex-shrink:0">' + icon + ' Registrar todos</button>';
-  html += '</div>';
-
-  items.forEach(function(item, i) {
-    var bg = i % 2 === 0 ? 'var(--surface)' : 'var(--surface2)';
-    html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:' + bg + ';border-top:1px solid var(--border)">';
-    html += '<span style="font-size:16px">📦</span>';
-    html += '<div style="flex:1">';
-    html += '<div style="font-size:13px;font-weight:600">' + (item.nombre || item.equipoNombre || '') + '</div>';
-    if ((item.cantidad || 1) > 1) html += '<div style="font-size:11px;color:var(--text3)">Cantidad: ' + item.cantidad + '</div>';
-    html += '</div></div>';
-  });
-  html += '</div>';
-
+  // Build panel using DOM (avoid inline quote issues)
   var panel = document.getElementById('mov-folio-items-panel');
-  panel.innerHTML = html;
+  panel.innerHTML = '';
+
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'border:1px solid ' + color + ';border-radius:8px;overflow:hidden';
+
+  // Header row
+  var header = document.createElement('div');
+  header.style.cssText = 'background:rgba(0,0,0,0.25);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px';
+  header.innerHTML =
+    '<span style="font-size:10px;font-family:var(--font-mono);letter-spacing:1px;color:' + color + '">' + icon + ' ' + label + ' (' + items.length + ')</span>';
+
+  var selRow = document.createElement('div');
+  selRow.style.cssText = 'display:flex;gap:6px;align-items:center';
+
+  var btnAll  = document.createElement('button');
+  btnAll.type = 'button';
+  btnAll.textContent = 'Todos';
+  btnAll.className   = 'btn btn-secondary btn-sm';
+  btnAll.style.cssText = 'font-size:10px;padding:3px 8px';
+  btnAll.addEventListener('click', function(){ movItemsSelectAll(true, color, colorHex); });
+
+  var btnNone = document.createElement('button');
+  btnNone.type = 'button';
+  btnNone.textContent = 'Ninguno';
+  btnNone.className   = 'btn btn-secondary btn-sm';
+  btnNone.style.cssText = 'font-size:10px;padding:3px 8px';
+  btnNone.addEventListener('click', function(){ movItemsSelectAll(false, color, colorHex); });
+
+  var btnReg  = document.createElement('button');
+  btnReg.type = 'button';
+  btnReg.id   = 'btn-registrar-todos';
+  btnReg.textContent = icon + ' Registrar';
+  btnReg.className   = 'btn btn-primary btn-sm';
+  btnReg.style.cssText = 'font-size:11px;padding:5px 14px';
+  btnReg.addEventListener('click', function(){ registerAllFromFolio(cotId, btnTipo); });
+
+  selRow.appendChild(btnAll);
+  selRow.appendChild(btnNone);
+  selRow.appendChild(btnReg);
+  header.appendChild(selRow);
+  wrap.appendChild(header);
+
+  // Item rows with visual checkboxes
+  items.forEach(function(item, i) {
+    var row = document.createElement('div');
+    row.dataset.equipoId = item.equipoId;
+    row.dataset.selected = '1';
+    row.dataset.cantidad = item.cantidad || 1;
+    row.dataset.nombre   = item.nombre || item.equipoNombre || '';
+    row.style.cssText    = 'display:flex;align-items:center;gap:12px;padding:9px 12px;border-top:1px solid var(--border);cursor:pointer;transition:background .15s;border-left:3px solid ' + color + ';background:rgba(0,0,0,0.1)';
+    row.className        = 'mov-item-row';
+
+    var chk = document.createElement('div');
+    chk.className = 'mov-chk-box';
+    chk.style.cssText = 'width:20px;height:20px;border-radius:5px;border:2px solid ' + color + ';flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;background:' + color + ';color:#1a1a1a';
+    chk.textContent = '✓';
+
+    var info = document.createElement('div');
+    info.style.cssText = 'flex:1';
+    info.innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--text1)">' + (item.nombre || item.equipoNombre || '') + '</div>'
+      + ((item.cantidad||1) > 1 ? '<div style="font-size:11px;color:var(--text3)">Cantidad: ' + item.cantidad + '</div>' : '');
+
+    row.appendChild(chk);
+    row.appendChild(info);
+
+    row.addEventListener('click', function() {
+      var sel = this.dataset.selected === '1';
+      sel = !sel;
+      this.dataset.selected  = sel ? '1' : '0';
+      this.style.borderLeft  = sel ? '3px solid ' + color : '3px solid transparent';
+      this.style.background  = sel ? 'rgba(0,0,0,0.1)' : '';
+      var cb = this.querySelector('.mov-chk-box');
+      cb.style.background   = sel ? color : 'transparent';
+      cb.style.borderColor  = sel ? color : 'var(--border)';
+      cb.style.color        = sel ? '#1a1a1a' : 'transparent';
+    });
+
+    wrap.appendChild(row);
+  });
+
+  panel.appendChild(wrap);
   panel.style.display = 'block';
 
-  // Wire up the button now that it's in the DOM
-  document.getElementById('btn-registrar-todos').addEventListener('click', function() {
-    registerAllFromFolio(cotId, btnTipo);
-  });
-
-  // Pre-fill single equipo fields for manual registration
+  // Pre-fill single equipo fields
   if (items.length > 0) {
     document.getElementById('mov-equipo').value   = items[0].equipoId;
     document.getElementById('mov-cantidad').value = items[0].cantidad || 1;
@@ -4645,6 +4701,35 @@ function fillMovFromFolio() {
     ? 'Check-in · ' + q.folio + (q.evento ? ' — ' + q.evento : '')
     : (q.evento ? 'Evento: ' + q.evento : '');
 }
+
+function riderSelectAll(val) {
+  document.querySelectorAll('#rider-items-list .rider-item-chk').forEach(function(row) {
+    row.dataset.selected = val ? '1' : '0';
+    row.style.borderLeft = val ? '3px solid var(--accent)' : '3px solid transparent';
+    row.style.background = val ? 'rgba(240,165,0,0.06)' : (row.dataset.bg || '');
+    var cb = row.querySelector('.rider-chk-box');
+    if (cb) {
+      cb.style.borderColor = val ? 'var(--accent)' : 'var(--border)';
+      cb.style.background  = val ? 'var(--accent)'  : 'transparent';
+      cb.style.color       = val ? '#1a1a1a'         : 'transparent';
+    }
+  });
+}
+
+function movItemsSelectAll(val, color, colorHex) {
+  document.querySelectorAll('.mov-item-row').forEach(function(row) {
+    row.dataset.selected = val ? '1' : '0';
+    row.style.borderLeft = val ? '3px solid ' + color : '3px solid transparent';
+    row.style.background = val ? 'rgba(0,0,0,0.1)' : '';
+    var cb = row.querySelector('.mov-chk-box');
+    if (cb) {
+      cb.style.background  = val ? color : 'transparent';
+      cb.style.borderColor = val ? color : 'var(--border)';
+      cb.style.color       = val ? '#1a1a1a' : 'transparent';
+    }
+  });
+}
+
 function clearMovFolioPanel() {
   var panel = document.getElementById('mov-folio-items-panel');
   if (panel) { panel.innerHTML = ''; panel.style.display = 'none'; }
@@ -4661,8 +4746,15 @@ function registerAllFromFolio(cotId, tipo) {
   var notas   = document.getElementById('mov-notas').value || '';
   var count   = 0;
 
+  // Get selected items from panel (if panel is visible), else all
+  var selectedIds = Array.from(document.querySelectorAll('.mov-item-row[data-selected="1"]'))
+    .map(function(r){ return String(r.dataset.equipoId); });
+  var hasPanel = selectedIds.length > 0 || document.querySelectorAll('.mov-item-row').length > 0;
+
   if (tipo === 'Salida') {
-    (q.items||[]).forEach(function(item) {
+    (q.items||[]).filter(function(item){
+      return !hasPanel || selectedIds.includes(String(item.equipoId));
+    }).forEach(function(item) {
       var eq = DB.inventario.find(function(e){ return String(e.id) === String(item.equipoId); });
       DB.movimientos.push({
         id: Date.now() + Math.floor(Math.random()*99999),
@@ -4686,8 +4778,12 @@ function registerAllFromFolio(cotId, tipo) {
     });
     toast('⬆ Check-out: ' + count + ' equipo(s) registrados · ' + q.folio, 'var(--accent)');
   } else {
-    // Entrada — close all active movs for this folio
+    // Entrada — close selected active movs for this folio
+    var activosPanel = Array.from(document.querySelectorAll('.mov-item-row[data-selected="1"]'))
+      .map(function(r){ return String(r.dataset.equipoId); });
+    var hasPanelE = activosPanel.length > 0 || document.querySelectorAll('.mov-item-row').length > 0;
     (DB.movimientos).forEach(function(m) {
+      if (hasPanelE && !activosPanel.includes(String(m.equipoId))) return;
       if (String(m.cotizacionId) === String(cotId) && m.estado === 'Activo') {
         m.estado = 'Devuelto';
         m.fechaEntradaReal = hoy;
@@ -6403,14 +6499,42 @@ function onRiderCotChange() {
       ? '<span style="font-size:10px;color:var(--red);font-family:var(--font-mono);background:var(--red-dim);padding:1px 6px;border-radius:4px">EN CAMPO</span>'
       : '<span style="font-size:10px;color:var(--green);font-family:var(--font-mono);background:rgba(0,200,100,0.1);padding:1px 6px;border-radius:4px">DISPONIBLE</span>';
     var bg = i % 2 === 0 ? 'var(--surface)' : 'var(--surface2)';
-    list.innerHTML += '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:'+bg+';cursor:pointer;border-bottom:1px solid var(--border)">' +
-      '<input type="checkbox" class="rider-item-chk" data-eq-id="'+(item.equipoId||'')+'" data-item-idx="'+i+'" '+(enCampo?'':'checked')+' style="width:16px;height:16px;accent-color:var(--accent)">' +
-      '<div style="flex:1">' +
-        '<div style="font-size:13px;font-weight:600">' + (item.nombre||'') + '</div>' +
-        '<div style="font-size:11px;color:var(--text3)">' + (item.marca||'') + (item.cantidad > 1 ? ' · x'+item.cantidad : '') + '</div>' +
-      '</div>' +
-      statusPill +
-    '</label>';
+    var row = document.createElement('div');
+    var isSelected = !enCampo;
+    row.className = 'rider-item-chk';
+    row.dataset.eqId      = item.equipoId || '';
+    row.dataset.itemIdx   = i;
+    row.dataset.selected  = isSelected ? '1' : '0';
+    row.dataset.bg = bg;
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s,border-left .15s;border-left:3px solid ' + (isSelected ? 'var(--accent)' : 'transparent') + ';background:' + (isSelected ? 'rgba(240,165,0,0.06)' : bg);
+
+    var chk = document.createElement('div');
+    chk.className = 'rider-chk-box';
+    chk.style.cssText = 'width:20px;height:20px;border-radius:5px;border:2px solid;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;border-color:' + (isSelected ? 'var(--accent)' : 'var(--border)') + ';background:' + (isSelected ? 'var(--accent)' : 'transparent') + ';color:' + (isSelected ? '#1a1a1a' : 'transparent');
+    chk.textContent = '✓';
+
+    var info = document.createElement('div');
+    info.style.cssText = 'flex:1';
+    info.innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--text1)">' + (item.nombre||'') + '</div>'
+      + '<div style="font-size:11px;color:var(--text3)">' + (item.marca||'') + (item.cantidad > 1 ? ' · x'+item.cantidad : '') + '</div>';
+
+    row.appendChild(chk);
+    row.appendChild(info);
+    row.insertAdjacentHTML('beforeend', statusPill);
+
+    row.addEventListener('click', function() {
+      var sel = this.dataset.selected === '1';
+      sel = !sel;
+      this.dataset.selected = sel ? '1' : '0';
+      this.style.borderLeft = sel ? '3px solid var(--accent)' : '3px solid transparent';
+      this.style.background = sel ? 'rgba(240,165,0,0.06)' : (this.dataset.bg || '');
+      var cb = this.querySelector('.rider-chk-box');
+      cb.style.borderColor = sel ? 'var(--accent)' : 'var(--border)';
+      cb.style.background  = sel ? 'var(--accent)'  : 'transparent';
+      cb.style.color       = sel ? '#1a1a1a'         : 'transparent';
+    });
+
+    list.appendChild(row);
   });
 
   fields.style.display = 'block';
@@ -6434,10 +6558,6 @@ function onRiderCotChange() {
   }
 }
 
-function riderSelectAll(val) {
-  document.querySelectorAll('.rider-item-chk').forEach(function(chk){ chk.checked = val; });
-}
-
 function getRiderFormData() {
   var id       = parseInt(document.getElementById('rider-cot-select').value);
   var q        = DB.cotizaciones.find(function(x){ return x.id === id; });
@@ -6446,7 +6566,7 @@ function getRiderFormData() {
   var retorno  = document.getElementById('rider-fecha-retorno').value;
   var autoriza = document.getElementById('rider-autorizado').value;
   var notas    = document.getElementById('rider-notas').value;
-  var checked  = Array.from(document.querySelectorAll('.rider-item-chk:checked'));
+  var checked  = Array.from(document.querySelectorAll('.rider-item-chk[data-selected="1"]'));
   return { q: q, cli: cli, salida: salida, retorno: retorno, autoriza: autoriza, notas: notas, checked: checked };
 }
 
