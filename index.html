@@ -3092,6 +3092,56 @@ function addCotItem() {
   recalcTotal();
 }
 
+// Rebuild a row with known data — used by editCot to avoid filter/event interference
+function addCotItemWithData(item) {
+  var container = document.getElementById('cot-items');
+  var eq = DB.inventario.find(function(e){ return String(e.id) === String(item.equipoId); });
+
+  var div = document.createElement('div');
+  div.className = 'quote-item-row';
+
+  var catOptions = '<option value="">Todas</option>' +
+    ['Drum Kits','Cymbals','Percussion','Amplifiers','Cabinets','Instruments','Keyboards','Accessories','Specials']
+    .map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
+
+  // Build eq options — all items so we can pre-select regardless of category
+  var eqOptions = buildEqOptions('', '');
+
+  div.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:4px">' +
+      '<select class="cot-cat-select" onchange="onCotItemCatChange(this)" style="font-size:12px;padding:4px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2)">' + catOptions + '</select>' +
+      '<input type="text" class="cot-eq-search" placeholder="🔍 Buscar..." oninput="onCotItemSearch(this)" style="font-size:12px;padding:4px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text1)">' +
+    '</div>' +
+    '<select class="cot-eq-select" onchange="autofillPrecio(this)">' + eqOptions + '</select>' +
+    '<input type="number" value="1" min="1" placeholder="Cant" oninput="recalcTotal()">' +
+    '<input type="number" value="" placeholder="$/día" oninput="recalcTotal()">' +
+    '<button class="remove-item-btn" onclick="this.parentElement.remove();recalcTotal()">×</button>';
+
+  container.appendChild(div);
+
+  // Now set values directly on the just-appended row — no events, no filters
+  var catSel = div.querySelector('.cot-cat-select');
+  var eqSel  = div.querySelector('.cot-eq-select');
+  var cantIn = div.querySelector('input[placeholder="Cant"]');
+  var precIn = div.querySelector('input[placeholder="$/día"]');
+
+  // Pre-select category (visual only — options already show all)
+  if (catSel && eq && eq.cat) catSel.value = eq.cat;
+
+  // Set equipment — iterate options to guarantee match by string
+  if (eqSel) {
+    for (var i = 0; i < eqSel.options.length; i++) {
+      if (String(eqSel.options[i].value) === String(item.equipoId)) {
+        eqSel.selectedIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (cantIn) cantIn.value = item.cantidad  || 1;
+  if (precIn) precIn.value = item.precioDia || 0;
+}
+
 function autofillPrecio(sel) {
   if (!sel) {
     // called without argument — find first unpriced row
@@ -3170,47 +3220,11 @@ function editCot(id) {
     var titleEl = document.querySelector('#modal-cotizacion .modal-title');
     if (titleEl) titleEl.textContent = 'Editar — ' + q.folio;
 
-    // Rebuild items using correct function addCotItem
+    // Rebuild items using addCotItemWithData — pre-selects each row independently
     var container = document.getElementById('cot-items');
     container.innerHTML = '';
     (q.items||[]).forEach(function(item) {
-      addCotItem();
-      var rows = container.querySelectorAll('.quote-item-row');
-      var row  = rows[rows.length - 1];
-
-      // Find the equipment in DB to get its category
-      var eq = DB.inventario.find(function(e){ return String(e.id) === String(item.equipoId); });
-
-      // Set category filter first so the eq select is filtered correctly
-      var catSel = row.querySelector('.cot-cat-select');
-      if (catSel && eq && eq.cat) {
-        catSel.value = eq.cat;
-        onCotItemCatChange(catSel);
-      }
-
-      // Now set the equipment select — try string match first, then iterate options
-      var eqSel = row.querySelector('.cot-eq-select');
-      if (eqSel) {
-        // Try direct assignment (works if types match)
-        eqSel.value = String(item.equipoId);
-        // If that didn't work, scan options manually
-        if (!eqSel.value || String(eqSel.value) !== String(item.equipoId)) {
-          // Reset to all categories so the item is definitely in the list
-          if (catSel) { catSel.value = ''; onCotItemCatChange(catSel); }
-          eqSel.value = String(item.equipoId);
-          // Last resort: iterate options
-          if (!eqSel.value || String(eqSel.value) !== String(item.equipoId)) {
-            for (var oi = 0; oi < eqSel.options.length; oi++) {
-              if (String(eqSel.options[oi].value) === String(item.equipoId)) {
-                eqSel.selectedIndex = oi; break;
-              }
-            }
-          }
-        }
-      }
-
-      row.querySelector('input[placeholder="Cant"]').value  = item.cantidad  || 1;
-      row.querySelector('input[placeholder="$/día"]').value = item.precioDia || 0;
+      addCotItemWithData(item);
     });
 
     recalcTotal();
