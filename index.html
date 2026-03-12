@@ -2337,7 +2337,10 @@
           <select id="cot-cliente"><option value="">Selecciona cliente...</option></select>
         </div>
         <div class="form-group">
-          <label>Nombre del Evento</label>
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            Nombre del Evento
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openEventoFromCot()" style="font-size:10px;padding:2px 8px">+ Crear Evento</button>
+          </label>
           <input type="text" id="cot-evento" placeholder="ej. Boda, Festival, Concierto">
         </div>
         <div class="form-group">
@@ -2485,6 +2488,13 @@
       <div class="form-group" style="margin-top:16px;">
         <label>Notas Adicionales</label>
         <textarea id="cot-notas" placeholder="Condiciones especiales, descuentos, notas..."></textarea>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;background:rgba(78,205,196,0.15);color:#4ecdc4;padding:2px 7px;border-radius:4px;font-family:var(--font-mono)">RIDER</span>
+          Rider Notes <span style="font-size:10px;color:var(--text3);font-weight:400">(for artist / production use)</span>
+        </label>
+        <textarea id="cot-rider-notas" placeholder="Stage setup, technical requirements, special conditions for the artist..."></textarea>
       </div>
     </div>
     <div class="modal-footer">
@@ -2852,6 +2862,27 @@ function populateEventoSelects() {
   sel.innerHTML = '<option value="">Sin cliente asignado</option>' + DB.clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
 }
 
+function openEventoFromCot() {
+  // Snapshot current cotizacion fields to restore after
+  var cotCliente = document.getElementById('cot-cliente').value;
+  var cotEvento  = document.getElementById('cot-evento').value;
+  var cotLugar   = document.getElementById('cot-lugar') ? document.getElementById('cot-lugar').value : '';
+  var cotFecha   = document.getElementById('cot-fecha').value;
+
+  // Pre-fill evento modal
+  document.getElementById('ev-nombre').value  = cotEvento || '';
+  document.getElementById('ev-lugar').value   = cotLugar  || '';
+  document.getElementById('ev-inicio').value  = cotFecha  || '';
+  document.getElementById('ev-fin').value     = cotFecha  || '';
+  // Match client
+  var evCli = document.getElementById('ev-cliente');
+  if (evCli && cotCliente) evCli.value = cotCliente;
+
+  // Mark as "launched from cotizacion" so saveEvento copies back
+  window._eventoFromCot = true;
+  document.getElementById('modal-evento').classList.add('open');
+}
+
 function saveEvento() {
   const nombre = document.getElementById('ev-nombre').value.trim();
   const inicio = document.getElementById('ev-inicio').value;
@@ -2866,6 +2897,17 @@ function saveEvento() {
     notas: document.getElementById('ev-notas').value
   });
   saveDB(); closeModal('modal-evento'); render();
+  // If launched from cotizacion, copy name back and re-open cotizacion
+  if (window._eventoFromCot) {
+    window._eventoFromCot = false;
+    var cotEvInput = document.getElementById('cot-evento');
+    if (cotEvInput) cotEvInput.value = nombre;
+    // Also sync lugar and fecha if cotizacion fields are empty
+    var cotLugar = document.getElementById('cot-lugar');
+    var cotFecha = document.getElementById('cot-fecha');
+    if (cotLugar && !cotLugar.value) cotLugar.value = document.getElementById('ev-lugar').value || '';
+    if (cotFecha && !cotFecha.value) cotFecha.value = document.getElementById('ev-inicio').value || '';
+  }
   toast('✅ Evento registrado');
   ['ev-nombre','ev-lugar','ev-inicio','ev-fin','ev-notas'].forEach(id => document.getElementById(id).value = '');
 }
@@ -3121,7 +3163,8 @@ function editCot(id) {
     document.getElementById('cot-anticipo').value  = q.anticipo || 0;
     document.getElementById('cot-traslado').value  = q.traslado || 0;
     document.getElementById('cot-viaticos').value  = q.viaticos || 0;
-    document.getElementById('cot-notas').value     = q.notas || '';
+    document.getElementById('cot-notas').value       = q.notas || '';
+    document.getElementById('cot-rider-notas').value = q.riderNotas || '';
 
     // Update modal title
     var titleEl = document.querySelector('#modal-cotizacion .modal-title');
@@ -3134,20 +3177,40 @@ function editCot(id) {
       addCotItem();
       var rows = container.querySelectorAll('.quote-item-row');
       var row  = rows[rows.length - 1];
-      var sel  = row.querySelector('select');
-      // Set select value — works because addCotItem populates all options
-      sel.value = item.equipoId;
-      if (sel.value != item.equipoId) {
-        // If option not found by value, try matching by name
-        for (var i = 0; i < sel.options.length; i++) {
-          if (sel.options[i].text.indexOf(item.nombre) >= 0) {
-            sel.selectedIndex = i; break;
+
+      // Find the equipment in DB to get its category
+      var eq = DB.inventario.find(function(e){ return String(e.id) === String(item.equipoId); });
+
+      // Set category filter first so the eq select is filtered correctly
+      var catSel = row.querySelector('.cot-cat-select');
+      if (catSel && eq && eq.cat) {
+        catSel.value = eq.cat;
+        onCotItemCatChange(catSel);
+      }
+
+      // Now set the equipment select — try string match first, then iterate options
+      var eqSel = row.querySelector('.cot-eq-select');
+      if (eqSel) {
+        // Try direct assignment (works if types match)
+        eqSel.value = String(item.equipoId);
+        // If that didn't work, scan options manually
+        if (!eqSel.value || String(eqSel.value) !== String(item.equipoId)) {
+          // Reset to all categories so the item is definitely in the list
+          if (catSel) { catSel.value = ''; onCotItemCatChange(catSel); }
+          eqSel.value = String(item.equipoId);
+          // Last resort: iterate options
+          if (!eqSel.value || String(eqSel.value) !== String(item.equipoId)) {
+            for (var oi = 0; oi < eqSel.options.length; oi++) {
+              if (String(eqSel.options[oi].value) === String(item.equipoId)) {
+                eqSel.selectedIndex = oi; break;
+              }
+            }
           }
         }
       }
-      var inputs = row.querySelectorAll('input[type="number"]');
-      if (inputs[0]) inputs[0].value = item.cantidad;
-      if (inputs[1]) inputs[1].value = item.precioDia;
+
+      row.querySelector('input[placeholder="Cant"]').value  = item.cantidad  || 1;
+      row.querySelector('input[placeholder="$/día"]').value = item.precioDia || 0;
     });
 
     recalcTotal();
@@ -3164,9 +3227,10 @@ function saveCotizacion() {
     const eq = DB.inventario.find(e => e.id == sel.value);
     const opt = sel.options[sel.selectedIndex];
     items.push({
-      equipoId: sel.value,
+      equipoId: String(sel.value),
       idEquipo: eq ? (eq.serie || String(eq.id)) : (opt?.dataset.id||''),
       marca: eq ? (eq.marca||'') : (opt?.dataset.marca||''),
+      modelo: eq ? (eq.modelo||'') : '',
       nombre: eq ? eq.nombre : opt?.text || 'Item',
       notas: eq ? (eq.notas||'') : '',
       cantidad: parseFloat(row.querySelector('input[placeholder="Cant"]').value) || 1,
@@ -3200,6 +3264,7 @@ function saveCotizacion() {
     anticipo: anticipo,
     total: total,
     notas: document.getElementById('cot-notas').value,
+    riderNotas: document.getElementById('cot-rider-notas').value,
     logistica: cotLogCalc ? Object.assign({}, cotLogCalc) : null
   };
 
@@ -3275,7 +3340,7 @@ function deleteCot(id) {
 }
 
 // ==================== PDF UTILS ====================
-function pdfHeader(doc, q, titulo) {
+function pdfHeader(doc, q, titulo, locale) {
   var W = 215.9;
   var cli = DB.clientes.find(function(c){ return c.id == q.clienteId; });
 
@@ -3306,7 +3371,7 @@ function pdfHeader(doc, q, titulo) {
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(80,80,95);
   doc.text(q.folio, W-16, 28, {align:'right'});
   doc.setFontSize(8); doc.setTextColor(150,150,165);
-  doc.text(new Date(q.creado).toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}), W-16, 35, {align:'right'});
+  doc.text(new Date(q.creado).toLocaleDateString(locale||'es-MX',{day:'2-digit',month:'long',year:'numeric'}), W-16, 35, {align:'right'});
 
   // ── Thin separator line ──
   doc.setDrawColor(220,220,228); doc.setLineWidth(0.3);
@@ -3319,23 +3384,29 @@ function pdfHeader(doc, q, titulo) {
   doc.setFillColor(245,245,248); doc.roundedRect(14, y, 88, 32, 2, 2, 'F');
   doc.setFillColor(240,165,0); doc.rect(14, y, 2.5, 32, 'F');
   doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(180,140,0);
-  doc.text('CLIENTE', 21, y+7);
+  var lblCliente = locale==='en-US' ? 'CLIENT' : 'CLIENTE';
+  doc.text(lblCliente, 21, y+7);
   doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(30,30,40);
   doc.text(cli ? cli.nombre.substring(0,24) : 'N/A', 21, y+15);
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(110,110,125);
-  if (cli && cli.tel)   doc.text('Tel: ' + cli.tel, 21, y+22);
+  var lblTel = locale==='en-US' ? 'Phone: ' : 'Tel: ';
+  if (cli && cli.tel)   doc.text(lblTel + cli.tel, 21, y+22);
   if (cli && cli.email) doc.text(cli.email.substring(0,30), 21, y+28);
 
   // Evento box
   doc.setFillColor(245,245,248); doc.roundedRect(108, y, 93, 32, 2, 2, 'F');
   doc.setFillColor(100,100,115); doc.rect(108, y, 2.5, 32, 'F');
   doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(100,100,115);
-  doc.text('EVENTO', 115, y+7);
+  var lblEvento = locale==='en-US' ? 'EVENT' : 'EVENTO';
+  doc.text(lblEvento, 115, y+7);
   doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(30,30,40);
   doc.text((q.evento || 'Evento').substring(0,26), 115, y+15);
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(110,110,125);
-  if (q.lugar) doc.text('Lugar: ' + q.lugar.substring(0,28), 115, y+22);
-  if (q.fecha) doc.text('Fecha: ' + q.fecha + '   Días: ' + q.dias, 115, y+28);
+  var lblLugar = locale==='en-US' ? 'Venue: ' : 'Lugar: ';
+  if (q.lugar) doc.text(lblLugar + q.lugar.substring(0,28), 115, y+22);
+  var lblFecha = locale==='en-US' ? 'Date: ' : 'Fecha: ';
+  var lblDias  = locale==='en-US' ? '   Days: ' : '   Días: ';
+  if (q.fecha) doc.text(lblFecha + q.fecha + lblDias + q.dias, 115, y+28);
 
   // ── Section divider before table ──
   var yReturn = y + 40;
@@ -3345,48 +3416,83 @@ function pdfHeader(doc, q, titulo) {
   return yReturn + 6;
 }
 
-function drawTableHeader(doc, y, showPrecio) {
+function drawTableHeader(doc, y, showPrecio, lang) {
   var W = 215.9;
   // Gold left accent
   doc.setFillColor(240,165,0); doc.rect(14, y, 2, 7, 'F');
   // Header bg subtle gray
   doc.setFillColor(240,240,244); doc.rect(16, y, W-30, 7, 'F');
   doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(80,80,95);
-  doc.text('DESCRIPCIÓN', 22, y+5);
-  doc.text('MARCA', 120, y+5);
-  doc.text('CANT.', 162, y+5, {align:'center'});
-  if (showPrecio) doc.text('P/DÍA', W-16, y+5, {align:'right'});
+  doc.text(lang==='en' ? 'DESCRIPTION / BRAND' : 'DESCRIPCIÓN / MARCA', 22, y+5);
+  doc.text('MODEL', 94, y+5);
+  doc.text(lang==='en' ? 'QTY.' : 'CANT.', 158, y+5, {align:'center'});
+  if (showPrecio) doc.text(lang==='en' ? 'PRICE/DAY' : 'P/DÍA', W-16, y+5, {align:'right'});
   return y + 7;
 }
 
 function drawTableRow(doc, item, y, idx, showPrecio) {
   var W = 215.9;
+  // Column positions
+  var xNombre = 22,  wNombre = 68;   // descripción
+  var xModelo = 94,  wModelo = 58;   // modelo
+  var xCant   = 158;
+  // Font sizes
+  var szNombre = 8, szModelo = 7.5, szSub = 6.5;
+
+  // ── Pre-calculate wrapped lines to determine row height ──
+  doc.setFont('helvetica','normal'); doc.setFontSize(szNombre);
+  var nombreLines = doc.splitTextToSize(item.nombre||'', wNombre);
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(szModelo);
+  var modeloLines = doc.splitTextToSize(item.modelo||'', wModelo);
+
+  // Sub line: marca + notas
   var hasNotas = item.notas && item.notas.trim().length > 0;
-  var rowH = hasNotas ? 13 : 8;
-  // Alternating row bg
+  var subLine  = [item.marca||'', hasNotas ? '› '+(item.notas||'') : ''].filter(Boolean).join('  ');
+  doc.setFont('helvetica','normal'); doc.setFontSize(szSub);
+  var subLines = subLine ? doc.splitTextToSize(subLine, wNombre + wModelo) : [];
+
+  // Row height: each line ~4mm, min 8mm padding top+bottom
+  var mainLines = Math.max(nombreLines.length, modeloLines.length);
+  var totalLines = mainLines + subLines.length;
+  var rowH = Math.max(10, mainLines * 4.5 + (subLines.length > 0 ? subLines.length * 4 + 5 : 0) + 3);
+
+  // ── Background ──
   if (idx % 2 === 1) { doc.setFillColor(249,249,252); doc.rect(14, y, W-28, rowH, 'F'); }
-  // Bottom separator line
+
+  // ── Content — vertically centered in row ──
+  var textY = y + 5.5;
+
+  // Nombre (wrapped)
+  doc.setFont('helvetica','normal'); doc.setFontSize(szNombre); doc.setTextColor(35,35,45);
+  doc.text(nombreLines, xNombre, textY);
+
+  // Modelo (wrapped)
+  doc.setFont('helvetica','normal'); doc.setFontSize(szModelo); doc.setTextColor(60,60,80);
+  doc.text(modeloLines, xModelo, textY);
+
+  // Sub line (marca + notas) below main lines
+  if (subLines.length > 0) {
+    var subY = y + (mainLines * 4) + 6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(szSub); doc.setTextColor(140,140,155);
+    doc.text(subLines, xNombre, subY);
+  }
+
+  // Cantidad — vertically centered
+  var midY = y + rowH / 2 + 1.5;
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(50,50,65);
+  doc.text(String(item.cantidad||1), xCant, midY, {align:'center'});
+
+  // Precio — vertically centered
+  if (showPrecio) {
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(180,130,0);
+    doc.text('$'+(item.precioDia||0).toLocaleString('es-MX',{minimumFractionDigits:2}), W-16, midY, {align:'right'});
+  }
+
+  // ── Bottom separator ──
   doc.setDrawColor(228,228,235); doc.setLineWidth(0.2);
   doc.line(14, y+rowH, W-14, y+rowH);
-  // Item name
-  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(35,35,45);
-  doc.text((item.nombre||'').substring(0,50), 22, y+5.5);
-  // Notas subtitle
-  if (hasNotas) {
-    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(140,140,155);
-    doc.text(('› ' + item.notas).substring(0,70), 22, y+10.5);
-  }
-  // Marca
-  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(100,100,115);
-  doc.text((item.marca||'').substring(0,18), 120, y+5.5);
-  // Cantidad
-  doc.setFont('helvetica','bold'); doc.setTextColor(50,50,65);
-  doc.text(String(item.cantidad), 162, y+5.5, {align:'center'});
-  // Precio
-  if (showPrecio) {
-    doc.setFont('helvetica','bold'); doc.setTextColor(180,130,0);
-    doc.text('$'+(item.precioDia||0).toLocaleString('es-MX',{minimumFractionDigits:2}), W-16, y+5.5, {align:'right'});
-  }
+
   return y + rowH;
 }
 
@@ -3775,7 +3881,7 @@ function exportPDF(id) {
   doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(150,150,165);
   doc.text('Generado con BacklineOS  ·  ' + (DB.config.empresa||''), W/2, 283, {align:'center'});
 
-  doc.save(q.folio+'_Cotizacion_'+(cli?.nombre||'cliente').replace(/ /g,'_')+'.pdf');
+  doc.save(q.folio+'_Cotizacion_'+(cli?.nombre||'cliente').replace(/\s+/g,'_')+'_'+(q.evento||'').replace(/\s+/g,'_')+'.pdf');
   toast('📄 Cotización PDF: '+q.folio);
 }
 
@@ -3792,20 +3898,20 @@ function exportRider(id) {
   const W = 215.9;
   const cli = DB.clientes.find(c => c.id == q.clienteId);
 
-  let y = pdfHeader(doc, q, 'Rider');
+  let y = pdfHeader(doc, q, 'Rider', 'en-US');
 
   // Rider subtitle
   doc.setFillColor(240,165,0); doc.rect(14, y-6, 2.5, 6, 'F');
   doc.setFillColor(253,250,240); doc.rect(16.5, y-6, W-31, 6, 'F');
   doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(160,120,0);
-  doc.text('DETALLE TÉCNICO DE EQUIPOS SOLICITADOS', 22, y-1.5);
+  doc.text('TECHNICAL EQUIPMENT DETAILS', 22, y-1.5);
   y += 4;
 
   // Table (sin precios)
-  y = drawTableHeader(doc, y, false);
+  y = drawTableHeader(doc, y, false, 'en');
 
   q.items.forEach((item, i) => {
-    if (y > 252) { doc.addPage(); y = 20; y = drawTableHeader(doc, y, false); }
+    if (y > 252) { doc.addPage(); y = 20; y = drawTableHeader(doc, y, false, 'en'); }
     y = drawTableRow(doc, item, y, i, false);
   });
 
@@ -3813,29 +3919,31 @@ function exportRider(id) {
   y += 6;
   doc.setFillColor(24,24,31); doc.roundedRect(18, y, 90, 10, 2, 2, 'F');
   doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(130,130,150);
-  doc.text('Total de equipos solicitados:', 23, y+6.5);
+  doc.text('Total items requested:', 23, y+6.5);
   doc.setFont('helvetica','bold'); doc.setTextColor(240,165,0);
   doc.text(String(q.items.reduce((s,i)=>s+i.cantidad,0)), 100, y+6.5);
 
-  // Notes
-  if (q.notas || DB.config.nota) {
-    y += 18;
-    const nota = [q.notas, DB.config.nota].filter(Boolean).join(' — ');
-    doc.setFillColor(18,18,24); doc.roundedRect(18, y, W-36, 18, 2, 2, 'F');
-    doc.setFillColor(78,205,196); doc.rect(18, y, 2, 18, 'F');
+  // Rider Notes — use riderNotas field, fallback to config nota
+  const riderNota = (q.riderNotas || '').trim();
+  if (riderNota) {
+    y += 14;
+    const noteLines = doc.splitTextToSize(riderNota, W-52);
+    const noteH = Math.max(18, noteLines.length * 4.5 + 10);
+    doc.setFillColor(18,18,24); doc.roundedRect(18, y, W-36, noteH, 2, 2, 'F');
+    doc.setFillColor(78,205,196); doc.rect(18, y, 2, noteH, 'F');
     doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(78,205,196);
-    doc.text('NOTAS', 24, y+6);
+    doc.text('NOTES', 24, y+6);
     doc.setFont('helvetica','normal'); doc.setTextColor(140,140,160);
-    doc.text(doc.splitTextToSize(nota, W-50), 24, y+12);
+    doc.text(noteLines, 24, y+12);
   }
 
   // Footer
   doc.setFillColor(10,10,12); doc.rect(0, 272, W, 8, 'F');
   doc.setFillColor(78,205,196); doc.rect(0, 272, W, 0.4, 'F');
   doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(80,80,100);
-  doc.text('Rider generado con BacklineOS — '+DB.config.empresa+' — Solo para uso del artista/producción', W/2, 277, {align:'center'});
+  doc.text('Rider generated with BacklineOS — '+DB.config.empresa+' — For artist/production use only', W/2, 277, {align:'center'});
 
-  doc.save(q.folio+'_Rider_'+(cli?.nombre||'artista').replace(/ /g,'_')+'.pdf');
+  doc.save(q.folio+'_Rider_'+(cli?.nombre||'artista').replace(/\s+/g,'_')+'_'+(q.evento||'').replace(/\s+/g,'_')+'.pdf');
   toast('📋 Rider PDF: '+q.folio);
 }
 
@@ -6239,21 +6347,49 @@ function exportContrato(id) {
 
   q.items.forEach(function(item, i) {
     pageCheck();
+
+    // Pre-calculate wrapped lines for adaptive height
+    var wNombre = 90;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    var nombreLines = doc.splitTextToSize(item.nombre||'', wNombre);
+
+    var hasSub = !!(item.marca || item.idEquipo || item.modelo);
+    var subText = [
+      item.marca || '',
+      item.modelo ? item.modelo : '',
+      item.idEquipo ? 'S/N: '+item.idEquipo : ''
+    ].filter(Boolean).join(' · ');
+    doc.setFontSize(6.5);
+    var subLines = hasSub ? doc.splitTextToSize(subText, wNombre + 20) : [];
+
+    // Row height: main lines + sub lines, min 8mm
+    var lineH  = 4.2;
+    var rowH   = Math.max(8, nombreLines.length * lineH + (subLines.length > 0 ? subLines.length * 3.8 + 3 : 0) + 3);
+
     var rowBg = i % 2 === 0 ? [20,20,28] : [24,24,34];
-    doc.setFillColor(rowBg[0],rowBg[1],rowBg[2]); doc.rect(18, y-4, W-36, 8, 'F');
+    doc.setFillColor(rowBg[0],rowBg[1],rowBg[2]);
+    doc.rect(18, y, W-36, rowH, 'F');
+
+    // Nombre (wrapped)
     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(220,220,235);
-    var itemName = String(item.nombre||'').substring(0,45);
-    doc.text(itemName, 22, y+0.5);
-    if (item.idEquipo || item.marca) {
+    doc.text(nombreLines, 22, y + 5);
+
+    // Sub line (marca · modelo · S/N)
+    if (subLines.length > 0) {
+      var subY = y + nombreLines.length * lineH + 5;
       doc.setFontSize(6.5); doc.setTextColor(120,120,140);
-      doc.text((item.marca||'') + (item.idEquipo ? ' · S/N: '+item.idEquipo : ''), 22, y+5);
+      doc.text(subLines, 22, subY);
     }
+
+    // Cant / Precio / Subtotal — vertically centered
+    var midY = y + rowH / 2 + 1.5;
     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(200,200,215);
-    doc.text(String(item.cantidad||1), W-62, y+0.5, {align:'right'});
-    doc.text(fmt(item.precioDia||0), W-42, y+0.5, {align:'right'});
+    doc.text(String(item.cantidad||1), W-62, midY, {align:'right'});
+    doc.text(fmt(item.precioDia||0), W-42, midY, {align:'right'});
     doc.setTextColor(240,165,0);
-    doc.text(fmt((item.cantidad||1)*(item.precioDia||0)*(q.dias||1)), W-18, y+0.5, {align:'right'});
-    y += (item.idEquipo || item.marca) ? 10 : 8;
+    doc.text(fmt((item.cantidad||1)*(item.precioDia||0)*(q.dias||1)), W-18, midY, {align:'right'});
+
+    y += rowH;
   });
 
   // Totals
@@ -6385,7 +6521,7 @@ function exportContrato(id) {
     doc.text('Página ' + p + ' de ' + totalPages, W-18, 277, {align:'right'});
   }
 
-  doc.save('Contrato_' + numContrato + '_' + (cli ? cli.nombre.replace(/\s+/g,'_') : 'cliente') + '.pdf');
+  doc.save('Contrato_' + numContrato + '_' + (cli ? cli.nombre.replace(/\s+/g,'_') : 'cliente') + '_' + (q.evento||'').replace(/\s+/g,'_') + '.pdf');
   toast('📝 Contrato generado: ' + numContrato, 'var(--green)');
 }
 
