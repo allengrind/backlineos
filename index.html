@@ -1314,19 +1314,19 @@
 
 var _riderAnalysis = []; // [{riderItem, status, matchedEq, selectedEqId}]
 
-function handleRiderDrop(e) {
-  e.preventDefault();
-  document.getElementById('rider-dropzone').classList.remove('drag-over');
-  var file = e.dataTransfer.files[0];
-  if (file && file.type === 'application/pdf') processRiderFile(file);
-  else toast('Solo se aceptan archivos PDF', 'var(--red)');
+function initRiderDropzone() {
+  var inp = document.getElementById('rider-file-input');
+  if (!inp || inp._riderInit) return;
+  inp._riderInit = true;
+  inp.addEventListener('change', function() {
+    var file = inp.files[0];
+    if (file) processRiderFile(file);
+    inp.value = '';
+  });
 }
 
-function handleRiderFileSelect(e) {
-  var file = e.target.files[0];
-  if (file) processRiderFile(file);
-  e.target.value = '';
-}
+function handleRiderDrop(e) {}
+function handleRiderFileSelect(e) {}
 
 function processRiderFile(file) {
   var status = document.getElementById('rider-status');
@@ -2311,19 +2311,19 @@ function createCotFromRider() {
           <div class="panel-header">
             <div class="panel-title">🎸 Importar Rider de Artista</div>
           </div>
-          <div class="panel-body">
-            <div id="rider-dropzone"
-              ondragover="event.preventDefault();this.classList.add('drag-over')"
-              ondragleave="this.classList.remove('drag-over')"
-              ondrop="handleRiderDrop(event)"
-              onclick="document.getElementById('rider-file-input').click()"
-              style="border:2px dashed var(--border);border-radius:12px;padding:48px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)">
-              <div style="font-size:48px;margin-bottom:12px">📄</div>
-              <div style="font-size:15px;font-weight:600;color:var(--text1);margin-bottom:6px">Arrastra el PDF del rider aquí</div>
-              <div style="font-size:12px;color:var(--text3)">o haz clic para seleccionar el archivo</div>
-              <input type="file" id="rider-file-input" accept=".pdf" style="display:none" onchange="handleRiderFileSelect(event)">
+          <div class="panel-body" style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 24px">
+            <div style="font-size:64px">📄</div>
+            <div style="text-align:center">
+              <div style="font-size:15px;font-weight:600;color:var(--text1);margin-bottom:6px">Selecciona el PDF del rider</div>
+              <div style="font-size:12px;color:var(--text3)">El archivo se procesará con IA y se cruzará contra tu inventario</div>
             </div>
-            <div id="rider-status" style="display:none;margin-top:16px;padding:14px 18px;border-radius:10px;background:var(--surface2);font-size:13px;color:var(--text2)"></div>
+            <label style="cursor:pointer">
+              <input type="file" id="rider-file-input" accept="application/pdf,.pdf" style="display:none">
+              <div class="btn btn-primary" style="font-size:14px;padding:12px 28px;pointer-events:none">
+                📂 Seleccionar PDF
+              </div>
+            </label>
+            <div id="rider-status" style="display:none;width:100%;padding:14px 18px;border-radius:10px;background:var(--surface2);font-size:13px;color:var(--text2);text-align:center"></div>
           </div>
         </div>
         <div id="rider-analysis-panel" style="display:none;margin-top:20px">
@@ -2956,7 +2956,7 @@ function showView(v) {
   document.getElementById('view-' + v).classList.add('active');
   event.currentTarget.classList.add('active');
   currentView = v;
-  const titles = { dashboard:'Dashboard', inventario:'Inventario', disponibilidad:'Disponibilidad', clientes:'Clientes', cotizaciones:'Cotizaciones', movimientos:'Check-in / Check-out', reportes:'Reportes', logistica:'Logística de Viajes', alertas:'🔔 Alertas', config:'Configuración' };
+  const titles = { dashboard:'Dashboard', inventario:'Inventario', disponibilidad:'Disponibilidad', clientes:'Clientes', cotizaciones:'Cotizaciones', 'rider-import':'🎸 Importar Rider', movimientos:'Check-in / Check-out', reportes:'Reportes', logistica:'Logística de Viajes', alertas:'🔔 Alertas', config:'Configuración' };
   document.getElementById('topbar-title').textContent = titles[v] || v;
   document.getElementById('topbar-bc').textContent = 'BacklineOS / ' + (titles[v] || v);
   // Sync bottom nav
@@ -2965,6 +2965,7 @@ function showView(v) {
   if (bnav) bnav.classList.add('active');
   closeSidebar();
   render();
+  if (v === 'rider-import') setTimeout(initRiderDropzone, 80);
 }
 
 // ==================== MODALS ====================
@@ -4503,7 +4504,7 @@ function showViewMobile(v, btn) {
   document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('view-' + v).classList.add('active');
   currentView = v;
-  const titles = { dashboard:'Dashboard', inventario:'Inventario', disponibilidad:'Disponibilidad', clientes:'Clientes', cotizaciones:'Cotizaciones', movimientos:'Check-in / Check-out', reportes:'Reportes', logistica:'Logística de Viajes', alertas:'🔔 Alertas', config:'Configuración' };
+  const titles = { dashboard:'Dashboard', inventario:'Inventario', disponibilidad:'Disponibilidad', clientes:'Clientes', cotizaciones:'Cotizaciones', 'rider-import':'🎸 Importar Rider', movimientos:'Check-in / Check-out', reportes:'Reportes', logistica:'Logística de Viajes', alertas:'🔔 Alertas', config:'Configuración' };
   document.getElementById('topbar-title').textContent = titles[v] || v;
   document.getElementById('topbar-bc').textContent = 'BacklineOS / ' + (titles[v] || v);
   closeSidebar();
