@@ -3602,6 +3602,7 @@ function addCotItemWithData(item) {
     '<select class="cot-eq-select" onchange="autofillPrecio(this)">' + eqOptions + '</select>' +
     '<input type="number" value="1" min="1" placeholder="Cant" oninput="recalcTotal()">' +
     '<input type="number" value="" placeholder="$/día" oninput="recalcTotal()">' +
+    '<input type="text" class="cot-seccion-input" placeholder="Sección" style="font-size:11px;padding:4px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2)">' +
     '<button class="remove-item-btn" onclick="this.parentElement.remove();recalcTotal()">×</button>';
 
   container.appendChild(div);
