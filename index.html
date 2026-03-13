@@ -1143,6 +1143,46 @@
   @media (max-width: 768px) {
     .scan-fab { display: flex; }
   }
+
+  /* ── Rider Import ── */
+  #rider-dropzone.drag-over {
+    border-color: var(--accent);
+    background: rgba(240,165,0,0.06);
+    transform: scale(1.01);
+  }
+  .rider-analysis-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+  }
+  .rider-analysis-row:last-child { border-bottom: none; }
+  .rider-analysis-row:hover { background: var(--surface2); }
+  .rider-match-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .rider-match-ok    { background: rgba(0,200,100,0.12); color: #00c864; }
+  .rider-match-warn  { background: rgba(240,165,0,0.15);  color: var(--accent); }
+  .rider-match-none  { background: rgba(220,50,50,0.12);  color: var(--red); }
+  .rider-section-header {
+    padding: 8px 16px;
+    background: var(--surface2);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+  }
+
 </style>
 
   <!-- PWA META -->
@@ -1269,6 +1309,290 @@
       }
     }, 2000);
   }
+
+// ==================== RIDER IMPORT ====================
+
+var _riderAnalysis = []; // [{riderItem, status, matchedEq, selectedEqId}]
+
+function handleRiderDrop(e) {
+  e.preventDefault();
+  document.getElementById('rider-dropzone').classList.remove('drag-over');
+  var file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') processRiderFile(file);
+  else toast('Solo se aceptan archivos PDF', 'var(--red)');
+}
+
+function handleRiderFileSelect(e) {
+  var file = e.target.files[0];
+  if (file) processRiderFile(file);
+  e.target.value = '';
+}
+
+function processRiderFile(file) {
+  var status = document.getElementById('rider-status');
+  status.style.display = 'block';
+  status.innerHTML = '⏳ Leyendo PDF…';
+  document.getElementById('rider-analysis-panel').style.display = 'none';
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var base64 = e.target.result.split(',')[1];
+    status.innerHTML = '🤖 Analizando rider con IA… esto puede tardar unos segundos.';
+    analyzeRiderWithClaude(base64, file.name);
+  };
+  reader.readAsDataURL(file);
+}
+
+function analyzeRiderWithClaude(base64, filename) {
+  var status = document.getElementById('rider-status');
+
+  // Build inventory summary for context
+  var invSummary = DB.inventario.map(function(e) {
+    return e.id + '|' + e.nombre + '|' + (e.marca||'') + '|' + (e.modelo||'') + '|' + (e.cat||'') + '|' + (e.serie||'') + '|' + (e.precio||0);
+  }).join('\n');
+
+  var systemPrompt = `You are a backline equipment specialist. You will receive a PDF of a concert rider and a list of available inventory.
+
+Your job:
+1. Extract EVERY equipment item from the rider, with quantity and which musician/section it belongs to.
+2. For each item, find the best match from the inventory list.
+3. Return ONLY valid JSON — no markdown, no explanation.
+
+Inventory format: id|nombre|marca|modelo|categoria|serie|precio_dia
+Inventory:
+` + invSummary + `
+
+Return this JSON structure:
+{
+  "artist": "Artist name from rider",
+  "sections": [
+    {
+      "section": "Section/musician name",
+      "items": [
+        {
+          "original": "original text from rider",
+          "qty": 1,
+          "matchId": "inventory id or null",
+          "matchScore": "exact|partial|none",
+          "matchReason": "brief reason",
+          "alternatives": ["id1","id2"] 
+        }
+      ]
+    }
+  ]
+}
+
+Rules:
+- matchScore "exact": brand+model clearly match
+- matchScore "partial": category/type matches but different brand or model
+- matchScore "none": nothing suitable in inventory
+- alternatives: up to 3 inventory ids of similar items (can be empty array)
+- matchId must be a valid inventory id string or null`;
+
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: [{
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+        }, {
+          type: 'text',
+          text: 'Extract all equipment items from this rider and match them to the inventory. Return only JSON.'
+        }]
+      }]
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var text = (data.content||[]).map(function(b){ return b.text||''; }).join('');
+    // Strip possible markdown fences
+    text = text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+    try {
+      var result = JSON.parse(text);
+      renderRiderAnalysis(result, filename);
+      status.innerHTML = '✅ Rider analizado: <strong>' + (result.artist||filename) + '</strong>';
+    } catch(err) {
+      status.innerHTML = '❌ Error al procesar respuesta de IA. Intenta de nuevo.';
+      console.error('Parse error:', err, text);
+    }
+  })
+  .catch(function(err) {
+    status.innerHTML = '❌ Error de conexión: ' + err.message;
+  });
+}
+
+function renderRiderAnalysis(result, filename) {
+  _riderAnalysis = [];
+  var panel = document.getElementById('rider-analysis-panel');
+  var container = document.getElementById('rider-items-analysis');
+  container.innerHTML = '';
+
+  var totalItems = 0, matched = 0, partial = 0, missing = 0;
+
+  (result.sections||[]).forEach(function(sec) {
+    // Section header
+    var hdr = document.createElement('div');
+    hdr.className = 'rider-section-header';
+    hdr.textContent = '▸ ' + sec.section.toUpperCase();
+    container.appendChild(hdr);
+
+    (sec.items||[]).forEach(function(item, itemIdx) {
+      totalItems++;
+      var rowId = 'ritem-' + _riderAnalysis.length;
+      var analysisEntry = {
+        riderItem: item,
+        section: sec.section,
+        selectedEqId: item.matchId || null,
+        status: item.matchScore
+      };
+      _riderAnalysis.push(analysisEntry);
+      var entryIdx = _riderAnalysis.length - 1;
+
+      if (item.matchScore === 'exact') matched++;
+      else if (item.matchScore === 'partial') partial++;
+      else missing++;
+
+      var matchedEq = item.matchId ? DB.inventario.find(function(e){ return String(e.id) === String(item.matchId); }) : null;
+
+      // Build row
+      var row = document.createElement('div');
+      row.className = 'rider-analysis-row';
+      row.id = rowId;
+
+      // Left: original request
+      var left = document.createElement('div');
+      left.innerHTML =
+        '<div style="font-size:12px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">×' + item.qty + ' — ' + sec.section + '</div>' +
+        '<div style="font-size:13px;font-weight:600;color:var(--text1)">' + item.original + '</div>';
+
+      // Center: match selector
+      var center = document.createElement('div');
+      var badgeClass = item.matchScore === 'exact' ? 'rider-match-ok' : item.matchScore === 'partial' ? 'rider-match-warn' : 'rider-match-none';
+      var badgeText  = item.matchScore === 'exact' ? '✅ MATCH' : item.matchScore === 'partial' ? '⚠ PARCIAL' : '❌ SIN MATCH';
+
+      // Build select with all inventory options, grouped
+      var selHtml = '<select style="width:100%;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text1);font-size:12px" onchange="onRiderItemSelect(this,' + entryIdx + ')">';
+      selHtml += '<option value="">— Sin asignar —</option>';
+
+      // Add top matches first
+      var topIds = [item.matchId].concat(item.alternatives||[]).filter(Boolean);
+      if (topIds.length) {
+        selHtml += '<optgroup label="── Sugeridos ──">';
+        topIds.forEach(function(id) {
+          var eq = DB.inventario.find(function(e){ return String(e.id) === String(id); });
+          if (!eq) return;
+          var sel = String(id) === String(item.matchId) ? ' selected' : '';
+          selHtml += '<option value="' + eq.id + '"' + sel + '>' + eq.nombre + ' — ' + (eq.marca||'') + ' ' + (eq.modelo||'') + '</option>';
+        });
+        selHtml += '</optgroup>';
+      }
+
+      // All inventory grouped by category
+      var cats = ['Drum Kits','Cymbals','Percussion','Amplifiers','Cabinets','Instruments','Keyboards','Accessories','Specials'];
+      cats.forEach(function(cat) {
+        var items = DB.inventario.filter(function(e){ return e.cat === cat; });
+        if (!items.length) return;
+        selHtml += '<optgroup label="── ' + cat + ' ──">';
+        items.forEach(function(eq) {
+          var alreadyShown = topIds.some(function(id){ return String(id) === String(eq.id); });
+          if (alreadyShown) return;
+          selHtml += '<option value="' + eq.id + '">' + eq.nombre + ' — ' + (eq.marca||'') + ' ' + (eq.modelo||'') + '</option>';
+        });
+        selHtml += '</optgroup>';
+      });
+      selHtml += '</select>';
+
+      center.innerHTML =
+        '<div style="margin-bottom:6px"><span class="rider-match-badge ' + badgeClass + '">' + badgeText + '</span>' +
+        (item.matchReason ? ' <span style="font-size:10px;color:var(--text3)">' + item.matchReason + '</span>' : '') + '</div>' +
+        selHtml;
+
+      // Right: qty input
+      var right = document.createElement('div');
+      right.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px';
+      right.innerHTML =
+        '<div style="font-size:10px;color:var(--text3)">CANT.</div>' +
+        '<input type="number" value="' + (item.qty||1) + '" min="1" style="width:54px;text-align:center;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text1);font-size:13px;font-weight:700" oninput="onRiderQtyChange(this,' + entryIdx + ')">';
+
+      row.appendChild(left);
+      row.appendChild(center);
+      row.appendChild(right);
+      container.appendChild(row);
+    });
+  });
+
+  // Stats
+  document.getElementById('rider-stats').innerHTML =
+    '<span style="color:#00c864">✅ ' + matched + '</span>  ' +
+    '<span style="color:var(--accent)">⚠ ' + partial + '</span>  ' +
+    '<span style="color:var(--red)">❌ ' + missing + '</span>  ' +
+    '<span style="color:var(--text3)">/ ' + totalItems + ' items</span>';
+
+  panel.style.display = 'block';
+  // Store artist name for cotizacion
+  panel.dataset.artist = result.artist || '';
+}
+
+function onRiderItemSelect(sel, idx) {
+  _riderAnalysis[idx].selectedEqId = sel.value || null;
+}
+
+function onRiderQtyChange(input, idx) {
+  _riderAnalysis[idx].riderItem.qty = parseInt(input.value) || 1;
+}
+
+function createCotFromRider() {
+  var hasAny = _riderAnalysis.some(function(a){ return a.selectedEqId; });
+  if (!hasAny) { toast('Asigna al menos un equipo antes de crear la cotización', 'var(--red)'); return; }
+
+  // Build items array
+  var items = [];
+  _riderAnalysis.forEach(function(a) {
+    if (!a.selectedEqId) return;
+    var eq = DB.inventario.find(function(e){ return String(e.id) === String(a.selectedEqId); });
+    if (!eq) return;
+    items.push({
+      equipoId: String(eq.id),
+      nombre:   eq.nombre,
+      marca:    eq.marca || '',
+      modelo:   eq.modelo || '',
+      idEquipo: eq.serie || String(eq.id),
+      notas:    eq.notas || '',
+      cantidad: a.riderItem.qty || 1,
+      precioDia: parseFloat(eq.precio) || 0
+    });
+  });
+
+  // Switch to cotizaciones and open modal pre-filled
+  showView('cotizaciones');
+  setTimeout(function() {
+    // Reset and open modal
+    editingCotId = null;
+    populateCotSelects();
+    openModal('modal-cotizacion');
+
+    setTimeout(function() {
+      // Pre-fill evento from artist name
+      var artist = document.getElementById('rider-analysis-panel').dataset.artist || '';
+      if (artist) document.getElementById('cot-evento').value = artist;
+
+      // Rebuild items
+      var container = document.getElementById('cot-items');
+      container.innerHTML = '';
+      items.forEach(function(item) { addCotItemWithData(item); });
+      recalcTotal();
+      toast('🎸 ' + items.length + ' equipos importados del rider');
+    }, 150);
+  }, 100);
+}
+// ==================== END RIDER IMPORT ====================
+
 </script>
 
 </head>
@@ -1351,6 +1675,9 @@
       <button class="nav-btn" onclick="showView('cotizaciones');if(window.innerWidth<=768)closeSidebar()">
         <span class="nav-icon">📋</span> Cotizaciones
         <span class="badge" id="badge-cot">0</span>
+      </button>
+      <button class="nav-btn" onclick="showView('rider-import');if(window.innerWidth<=768)closeSidebar()">
+        <span class="nav-icon">🎸</span> Importar Rider
       </button>
 
       <div class="nav-section">Operaciones</div>
@@ -1977,6 +2304,43 @@
         </div>
       </div>
 
+
+      <!-- ====== RIDER IMPORT ====== -->
+      <div class="view" id="view-rider-import">
+        <div class="panel" style="max-width:700px;margin:0 auto">
+          <div class="panel-header">
+            <div class="panel-title">🎸 Importar Rider de Artista</div>
+          </div>
+          <div class="panel-body">
+            <div id="rider-dropzone"
+              ondragover="event.preventDefault();this.classList.add('drag-over')"
+              ondragleave="this.classList.remove('drag-over')"
+              ondrop="handleRiderDrop(event)"
+              onclick="document.getElementById('rider-file-input').click()"
+              style="border:2px dashed var(--border);border-radius:12px;padding:48px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)">
+              <div style="font-size:48px;margin-bottom:12px">📄</div>
+              <div style="font-size:15px;font-weight:600;color:var(--text1);margin-bottom:6px">Arrastra el PDF del rider aquí</div>
+              <div style="font-size:12px;color:var(--text3)">o haz clic para seleccionar el archivo</div>
+              <input type="file" id="rider-file-input" accept=".pdf" style="display:none" onchange="handleRiderFileSelect(event)">
+            </div>
+            <div id="rider-status" style="display:none;margin-top:16px;padding:14px 18px;border-radius:10px;background:var(--surface2);font-size:13px;color:var(--text2)"></div>
+          </div>
+        </div>
+        <div id="rider-analysis-panel" style="display:none;margin-top:20px">
+          <div class="panel">
+            <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div class="panel-title">📊 Análisis del Rider</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <div id="rider-stats" style="font-size:11px;font-family:var(--font-mono);color:var(--text3)"></div>
+                <button class="btn btn-primary" onclick="createCotFromRider()">✅ Crear Cotización</button>
+              </div>
+            </div>
+            <div class="panel-body" style="padding:0">
+              <div id="rider-items-analysis"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div><!-- /content -->
   </main>
 </div><!-- /app -->
@@ -5363,6 +5727,10 @@ function registerSW() {
     });
   `;
 
+  // Blob-based SW doesn't work on GitHub Pages or file:// — skip silently
+  const isGHPages = location.hostname.endsWith('github.io');
+  const isFile    = location.protocol === 'file:';
+  if (isGHPages || isFile) return;
   try {
     const blob = new Blob([swCode], {type:'application/javascript'});
     const swUrl = URL.createObjectURL(blob);
@@ -5375,8 +5743,8 @@ function registerSW() {
           });
         });
       })
-      .catch(err => console.warn('SW failed:', err));
-  } catch(e) { console.warn('SW blob failed:', e); }
+      .catch(() => {});
+  } catch(e) {}
 }
 
 function showUpdateBanner() {
