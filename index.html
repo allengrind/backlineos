@@ -549,7 +549,7 @@
   .quote-items { margin-top: 0; }
   .quote-item-row {
     display: grid;
-    grid-template-columns: 140px 1fr 80px 100px 36px;
+    grid-template-columns: 140px 1fr 80px 100px 90px 36px;
     gap: 8px;
     margin-bottom: 8px;
     align-items: center;
@@ -905,7 +905,7 @@
 
     /* Quote items on mobile - stack vertically */
     .quote-item-row {
-      grid-template-columns: 1fr 60px 80px 36px;
+      grid-template-columns: 1fr 60px 80px 80px 36px;
       gap: 6px;
     }
 
@@ -2947,6 +2947,7 @@ function importRiderExcel(inp) {
       var iModelo   = headers.findIndex(function(h){ return h.includes('modelo') || h === 'model'; });
       var iCantidad = headers.findIndex(function(h){ return h.includes('cantidad') || h === 'qty'; });
       var iPrecio   = headers.findIndex(function(h){ return h.includes('día') || h.includes('dia') || h.includes('precio') || h.includes('price'); });
+      var iSeccion  = headers.findIndex(function(h){ return h.includes('secci') || h.includes('section') || h === 'seccion'; });
 
       if (iNombre < 0) {
         toast('No se encontró columna Nombre — headers: ' + headers.join(', '), 'var(--red)'); return;
@@ -2965,24 +2966,17 @@ function importRiderExcel(inp) {
 
         if (!nombre) continue;
 
+        // Match: exact nombre+marca → exact nombre → partial
         var eq = DB.inventario.find(function(e) {
-          var hn = (e.nombre || '').toLowerCase();
-          var hm = (e.marca  || '').toLowerCase();
+          return (e.nombre||'').toLowerCase() === nombre.toLowerCase() &&
+                 (!marca || (e.marca||'').toLowerCase() === marca.toLowerCase());
+        }) || DB.inventario.find(function(e) {
+          return (e.nombre||'').toLowerCase() === nombre.toLowerCase();
+        }) || DB.inventario.find(function(e) {
+          var hn = (e.nombre||'').toLowerCase();
           var nn = nombre.toLowerCase();
-          var nm = marca.toLowerCase();
-          // 1. Exact nombre + marca
-          if (hn === nn && (!nm || hm === nm)) return true;
-          // 2. Partial nombre + partial marca
-          if ((hn.includes(nn) || nn.includes(hn)) && nn.length > 3) {
-            if (!nm || hm.includes(nm) || nm.includes(hm)) return true;
-          }
-          // 3. Nombre only (ignore marca) — last resort
-          if (hn === nn) return true;
-          if (hn.includes(nn) && nn.length > 4) return true;
-          return false;
+          return nn.length > 4 && (hn.includes(nn) || nn.includes(hn));
         });
-        // Debug log first few
-        if (added < 3) console.log('[RiderExcel] Row', r, '- nombre:', nombre, '→', eq ? eq.nombre : 'NO MATCH');
 
         addCotItemWithData({
           equipoId:  eq ? String(eq.id) : '',
@@ -2992,7 +2986,8 @@ function importRiderExcel(inp) {
           idEquipo:  eq ? (eq.serie  || String(eq.id)) : '',
           notas:     eq ? (eq.notas  || '') : '',
           cantidad:  cantidad,
-          precioDia: precio || (eq ? parseFloat(eq.precio) || 0 : 0)
+          precioDia: precio || (eq ? parseFloat(eq.precio) || 0 : 0),
+          seccion:   iSeccion >= 0 ? String(row[iSeccion] || '').trim() : ''
         });
         added++;
       }
