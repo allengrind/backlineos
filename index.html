@@ -1314,31 +1314,42 @@
 
 var _riderAnalysis = []; // [{riderItem, status, matchedEq, selectedEqId}]
 
-function initRiderDropzone() {
-  var inp = document.getElementById('rider-file-input');
-  if (!inp || inp._riderInit) return;
-  inp._riderInit = true;
-  inp.addEventListener('change', function() {
-    var file = inp.files[0];
-    if (file) processRiderFile(file);
-    inp.value = '';
-  });
+function riderOnFileChange(inp) {
+  if (inp.files && inp.files[0]) {
+    processRiderFile(inp.files[0]);
+    setTimeout(function(){ inp.value = ''; }, 500);
+  }
 }
 
+function riderOpenFile() {}
+function initRiderDropzone() {}
 function handleRiderDrop(e) {}
 function handleRiderFileSelect(e) {}
 
 function processRiderFile(file) {
   var status = document.getElementById('rider-status');
   status.style.display = 'block';
-  status.innerHTML = '⏳ Leyendo PDF…';
+  status.innerHTML = '⏳ Leyendo PDF: <strong>' + file.name + '</strong>';
   document.getElementById('rider-analysis-panel').style.display = 'none';
 
+  if (!DB.inventario || !DB.inventario.length) {
+    status.innerHTML = '❌ El inventario está vacío. Importa equipos primero.';
+    return;
+  }
+
   var reader = new FileReader();
+  reader.onerror = function() {
+    status.innerHTML = '❌ Error al leer el archivo. Intenta de nuevo.';
+  };
   reader.onload = function(e) {
-    var base64 = e.target.result.split(',')[1];
-    status.innerHTML = '🤖 Analizando rider con IA… esto puede tardar unos segundos.';
-    analyzeRiderWithClaude(base64, file.name);
+    try {
+      var base64 = e.target.result.split(',')[1];
+      if (!base64) { status.innerHTML = '❌ No se pudo leer el PDF.'; return; }
+      status.innerHTML = '🤖 Analizando con IA… esto puede tardar 10–20 segundos.';
+      analyzeRiderWithClaude(base64, file.name);
+    } catch(err) {
+      status.innerHTML = '❌ Error: ' + err.message;
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -1408,22 +1419,29 @@ Rules:
       }]
     })
   })
-  .then(function(r) { return r.json(); })
+  .then(function(r) {
+    if (!r.ok) { return r.json().then(function(e){ throw new Error('API ' + r.status + ': ' + JSON.stringify(e)); }); }
+    return r.json();
+  })
   .then(function(data) {
+    var status = document.getElementById('rider-status');
+    if (data.error) { status.innerHTML = '❌ Error API: ' + (data.error.message||JSON.stringify(data.error)); return; }
     var text = (data.content||[]).map(function(b){ return b.text||''; }).join('');
-    // Strip possible markdown fences
     text = text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+    console.log('Claude response:', text.substring(0,200));
     try {
       var result = JSON.parse(text);
       renderRiderAnalysis(result, filename);
       status.innerHTML = '✅ Rider analizado: <strong>' + (result.artist||filename) + '</strong>';
     } catch(err) {
-      status.innerHTML = '❌ Error al procesar respuesta de IA. Intenta de nuevo.';
+      status.innerHTML = '❌ Error al parsear JSON. Respuesta: <pre style="font-size:10px;overflow:auto;max-height:100px">' + text.substring(0,300) + '</pre>';
       console.error('Parse error:', err, text);
     }
   })
   .catch(function(err) {
-    status.innerHTML = '❌ Error de conexión: ' + err.message;
+    var status = document.getElementById('rider-status');
+    status.innerHTML = '❌ Error de conexión: ' + err.message + '<br><small>Verifica tu conexión a internet e intenta de nuevo.</small>';
+    console.error('Rider API error:', err);
   });
 }
 
@@ -2317,12 +2335,9 @@ function createCotFromRider() {
               <div style="font-size:15px;font-weight:600;color:var(--text1);margin-bottom:6px">Selecciona el PDF del rider</div>
               <div style="font-size:12px;color:var(--text3)">El archivo se procesará con IA y se cruzará contra tu inventario</div>
             </div>
-            <label style="cursor:pointer">
-              <input type="file" id="rider-file-input" accept="application/pdf,.pdf" style="display:none">
-              <div class="btn btn-primary" style="font-size:14px;padding:12px 28px;pointer-events:none">
-                📂 Seleccionar PDF
-              </div>
-            </label>
+            <input type="file" id="rider-file-input" accept=".pdf"
+              onchange="riderOnFileChange(this)"
+              style="font-size:14px;color:var(--text1);background:var(--accent);border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-family:var(--font);font-weight:600;color:#1a1a1a">
             <div id="rider-status" style="display:none;width:100%;padding:14px 18px;border-radius:10px;background:var(--surface2);font-size:13px;color:var(--text2);text-align:center"></div>
           </div>
         </div>
