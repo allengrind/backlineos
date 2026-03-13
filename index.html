@@ -1710,9 +1710,6 @@ function createCotFromRider() {
         <span class="nav-icon">📋</span> Cotizaciones
         <span class="badge" id="badge-cot">0</span>
       </button>
-      <button class="nav-btn" onclick="showView('rider-import');if(window.innerWidth<=768)closeSidebar()">
-        <span class="nav-icon">🎸</span> Importar Rider
-      </button>
 
       <div class="nav-section">Operaciones</div>
       <button class="nav-btn" onclick="showView('movimientos');if(window.innerWidth<=768)closeSidebar()">
@@ -2337,48 +2334,7 @@ function createCotFromRider() {
           </div>
         </div>
       </div>
-
-
-      <!-- ====== RIDER IMPORT ====== -->
-      <div class="view" id="view-rider-import">
-        <div class="panel" style="max-width:700px;margin:0 auto">
-          <div class="panel-header">
-            <div class="panel-title">🎸 Importar Rider de Artista</div>
-          </div>
-          <div id="rider-browser-warn" style="display:none;padding:10px 18px;background:rgba(255,160,0,0.12);border-bottom:1px solid rgba(255,160,0,0.25);font-size:12px;color:var(--accent);display:flex;align-items:center;gap:8px">
-            ⚠️ <span>Esta función requiere <strong>Google Chrome</strong> — Safari bloquea las llamadas a la API de IA. Abre la app en Chrome para usar el importador.</span>
-          </div>
-          <div class="panel-body" style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 24px">
-            <div style="font-size:64px">📄</div>
-            <div style="text-align:center">
-              <div style="font-size:15px;font-weight:600;color:var(--text1);margin-bottom:6px">Selecciona el PDF del rider</div>
-              <div style="font-size:12px;color:var(--text3)">El archivo se procesará con IA y se cruzará contra tu inventario</div>
-            </div>
-            <input type="file" id="rider-file-input" accept=".pdf"
-              onchange="riderOnFileChange(this)"
-              oninput="riderOnFileChange(this)"
-              style="font-size:14px;background:var(--accent);border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-family:var(--font);font-weight:600;color:#1a1a1a">
-            <div id="rider-status" style="width:100%;min-height:20px;padding:14px 18px;border-radius:10px;background:var(--surface2);font-size:13px;color:var(--text2);text-align:center">
-              Listo para analizar — selecciona un PDF arriba
-            </div>
-          </div>
-        </div>
-        <div id="rider-analysis-panel" style="display:none;margin-top:20px">
-          <div class="panel">
-            <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-              <div class="panel-title">📊 Análisis del Rider</div>
-              <div style="display:flex;gap:8px;align-items:center">
-                <div id="rider-stats" style="font-size:11px;font-family:var(--font-mono);color:var(--text3)"></div>
-                <button class="btn btn-primary" onclick="createCotFromRider()">✅ Crear Cotización</button>
-              </div>
-            </div>
-            <div class="panel-body" style="padding:0">
-              <div id="rider-items-analysis"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div><!-- /content -->
+      <!-- /content -->
   </main>
 </div><!-- /app -->
 
@@ -2858,7 +2814,7 @@ function createCotFromRider() {
       </div>
 
       <div class="quote-items">
-        <div style="display:grid;grid-template-columns:140px 1fr 80px 100px 36px;gap:8px;margin-bottom:4px;padding:0 2px;">
+        <div style="display:grid;grid-template-columns:140px 1fr 80px 100px 90px 36px;gap:8px;margin-bottom:4px;padding:0 2px;">
           <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase">Categoría</span><span style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase">Equipo</span>
           <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase">Cant.</span>
           <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase">$/día</span>
@@ -2960,7 +2916,18 @@ function importRiderExcel(inp) {
       console.log('[RiderExcel] Rows:', rows.length, 'First:', rows[0]);
 
       if (!rows || rows.length < 2) {
-        toast('No se encontraron datos en el Excel', 'var(--red)'); return;
+        // Maybe the IMPORTAR sheet is empty (all items were unmatched)
+        // Try the first sheet as fallback
+        var fallbackSheet = wb.SheetNames[0];
+        if (sheetName !== fallbackSheet) {
+          console.log('[RiderExcel] IMPORTAR sheet empty, trying:', fallbackSheet);
+          ws   = wb.Sheets[fallbackSheet];
+          rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        }
+        if (!rows || rows.length < 2) {
+          toast('La hoja IMPORTAR está vacía — posiblemente Claude no encontró matches. Revisa el Excel manualmente.', 'var(--red)');
+          return;
+        }
       }
 
       // Find header row (scan first 5 rows)
@@ -3003,14 +2970,19 @@ function importRiderExcel(inp) {
           var hm = (e.marca  || '').toLowerCase();
           var nn = nombre.toLowerCase();
           var nm = marca.toLowerCase();
-          // Exact nombre + marca
+          // 1. Exact nombre + marca
           if (hn === nn && (!nm || hm === nm)) return true;
-          // Partial nombre + marca
+          // 2. Partial nombre + partial marca
           if ((hn.includes(nn) || nn.includes(hn)) && nn.length > 3) {
             if (!nm || hm.includes(nm) || nm.includes(hm)) return true;
           }
+          // 3. Nombre only (ignore marca) — last resort
+          if (hn === nn) return true;
+          if (hn.includes(nn) && nn.length > 4) return true;
           return false;
         });
+        // Debug log first few
+        if (added < 3) console.log('[RiderExcel] Row', r, '- nombre:', nombre, '→', eq ? eq.nombre : 'NO MATCH');
 
         addCotItemWithData({
           equipoId:  eq ? String(eq.id) : '',
@@ -3111,7 +3083,7 @@ function showView(v) {
   document.getElementById('view-' + v).classList.add('active');
   event.currentTarget.classList.add('active');
   currentView = v;
-  const titles = { dashboard:'Dashboard', inventario:'Inventario', disponibilidad:'Disponibilidad', clientes:'Clientes', cotizaciones:'Cotizaciones', 'rider-import':'🎸 Importar Rider', movimientos:'Check-in / Check-out', reportes:'Reportes', logistica:'Logística de Viajes', alertas:'🔔 Alertas', config:'Configuración' };
+  const titles = { dashboard:'Dashboard', inventario:'Inventario', disponibilidad:'Disponibilidad', clientes:'Clientes', cotizaciones:'Cotizaciones', movimientos:'Check-in / Check-out', reportes:'Reportes', logistica:'Logística de Viajes', alertas:'🔔 Alertas', config:'Configuración' };
   document.getElementById('topbar-title').textContent = titles[v] || v;
   document.getElementById('topbar-bc').textContent = 'BacklineOS / ' + (titles[v] || v);
   // Sync bottom nav
@@ -3120,7 +3092,6 @@ function showView(v) {
   if (bnav) bnav.classList.add('active');
   closeSidebar();
   render();
-  if (v === 'rider-import') { setTimeout(initRiderDropzone, 80); var w=document.getElementById('rider-browser-warn'); if(w){var isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent); w.style.display=isSafari?'flex':'none';} }
 }
 
 // ==================== MODALS ====================
@@ -3606,6 +3577,7 @@ function addCotItem() {
     '<select class="cot-eq-select" onchange="autofillPrecio(this)">' + eqOptions + '</select>' +
     '<input type="number" value="1" min="1" placeholder="Cant" oninput="recalcTotal()">' +
     '<input type="number" value="" placeholder="$/día" oninput="recalcTotal()">' +
+    '<input type="text" class="cot-seccion-input" placeholder="Sección" style="font-size:11px;padding:4px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);min-width:80px">' +
     '<button class="remove-item-btn" onclick="this.parentElement.remove();recalcTotal()">×</button>';
 
   container.appendChild(div);
@@ -3660,6 +3632,8 @@ function addCotItemWithData(item) {
 
   if (cantIn) cantIn.value = item.cantidad  || 1;
   if (precIn) precIn.value = item.precioDia || 0;
+  var secIn = div.querySelector('.cot-seccion-input');
+  if (secIn && item.seccion) secIn.value = item.seccion;
 }
 
 function autofillPrecio(sel) {
@@ -3768,7 +3742,8 @@ function saveCotizacion() {
       nombre: eq ? eq.nombre : opt?.text || 'Item',
       notas: eq ? (eq.notas||'') : '',
       cantidad: parseFloat(row.querySelector('input[placeholder="Cant"]').value) || 1,
-      precioDia: parseFloat(row.querySelector('input[placeholder="$/día"]').value) || 0
+      precioDia: parseFloat(row.querySelector('input[placeholder="$/día"]').value) || 0,
+      seccion: (row.querySelector('.cot-seccion-input') || {}).value || ''
     });
   });
   const dias = parseInt(document.getElementById('cot-dias').value) || 1;
@@ -4441,13 +4416,59 @@ function exportRider(id) {
   doc.text('TECHNICAL EQUIPMENT DETAILS', 22, y-1.5);
   y += 4;
 
-  // Table (sin precios)
+  // Table grouped by section
   y = drawTableHeader(doc, y, false, 'en');
 
-  q.items.forEach((item, i) => {
-    if (y > 252) { doc.addPage(); y = 20; y = drawTableHeader(doc, y, false, 'en'); }
-    y = drawTableRow(doc, item, y, i, false);
+  // Group items by seccion
+  const sections = {};
+  const noSection = [];
+  q.items.forEach(item => {
+    const sec = (item.seccion || '').trim();
+    if (sec) {
+      if (!sections[sec]) sections[sec] = [];
+      sections[sec].push(item);
+    } else {
+      noSection.push(item);
+    }
   });
+
+  const hasSections = Object.keys(sections).length > 0;
+  let rowIdx = 0;
+
+  function drawSectionHeader(label) {
+    if (y > 248) { doc.addPage(); y = 20; y = drawTableHeader(doc, y, false, 'en'); }
+    doc.setFillColor(30, 30, 40);
+    doc.rect(14, y, W-28, 7, 'F');
+    doc.setFillColor(240, 165, 0);
+    doc.rect(14, y, 2, 7, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(240, 165, 0);
+    doc.text(label.toUpperCase(), 20, y + 4.8);
+    y += 7;
+  }
+
+  if (hasSections) {
+    Object.entries(sections).forEach(([sec, items]) => {
+      drawSectionHeader(sec);
+      items.forEach(item => {
+        if (y > 252) { doc.addPage(); y = 20; y = drawTableHeader(doc, y, false, 'en'); }
+        y = drawTableRow(doc, item, y, rowIdx++, false);
+      });
+    });
+    if (noSection.length > 0) {
+      drawSectionHeader('General');
+      noSection.forEach(item => {
+        if (y > 252) { doc.addPage(); y = 20; y = drawTableHeader(doc, y, false, 'en'); }
+        y = drawTableRow(doc, item, y, rowIdx++, false);
+      });
+    }
+  } else {
+    q.items.forEach((item, i) => {
+      if (y > 252) { doc.addPage(); y = 20; y = drawTableHeader(doc, y, false, 'en'); }
+      y = drawTableRow(doc, item, y, i, false);
+    });
+  }
 
   // Total de items
   y += 6;
@@ -4659,7 +4680,7 @@ function showViewMobile(v, btn) {
   document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('view-' + v).classList.add('active');
   currentView = v;
-  const titles = { dashboard:'Dashboard', inventario:'Inventario', disponibilidad:'Disponibilidad', clientes:'Clientes', cotizaciones:'Cotizaciones', 'rider-import':'🎸 Importar Rider', movimientos:'Check-in / Check-out', reportes:'Reportes', logistica:'Logística de Viajes', alertas:'🔔 Alertas', config:'Configuración' };
+  const titles = { dashboard:'Dashboard', inventario:'Inventario', disponibilidad:'Disponibilidad', clientes:'Clientes', cotizaciones:'Cotizaciones', movimientos:'Check-in / Check-out', reportes:'Reportes', logistica:'Logística de Viajes', alertas:'🔔 Alertas', config:'Configuración' };
   document.getElementById('topbar-title').textContent = titles[v] || v;
   document.getElementById('topbar-bc').textContent = 'BacklineOS / ' + (titles[v] || v);
   closeSidebar();
