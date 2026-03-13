@@ -1625,6 +1625,114 @@ function createCotFromRider() {
     }, 150);
   }, 100);
 }
+
+function importRiderExcel(inp) {
+  if (!inp.files || !inp.files[0]) return;
+  var file = inp.files[0];
+  inp.value = '';
+
+  if (typeof XLSX === 'undefined') {
+    requireLib('xlsx', function(ok) {
+      if (ok) { inp.files = file; importRiderExcel(inp); }
+    });
+    toast('Cargando soporte Excel...', 'var(--accent)');
+    return;
+  }
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb   = XLSX.read(e.target.result, { type: 'array' });
+
+      // Look for the cotizacion sheet by name
+      var sheetName = wb.SheetNames.find(function(n) {
+        return n.toLowerCase().includes('cotizaci') || n.toLowerCase().includes('lista');
+      }) || wb.SheetNames[0];
+
+      var ws   = wb.Sheets[sheetName];
+      var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (!rows || rows.length < 2) {
+        toast('No se encontraron datos en el Excel', 'var(--red)'); return;
+      }
+
+      // Find header row
+      var headerIdx = 0;
+      for (var i = 0; i < Math.min(5, rows.length); i++) {
+        var r = rows[i].map(function(h){ return String(h).toLowerCase(); });
+        if (r.some(function(h){ return h.includes('nombre') || h.includes('name'); })) {
+          headerIdx = i; break;
+        }
+      }
+
+      var headers = rows[headerIdx].map(function(h){ return String(h).trim().toLowerCase(); });
+      var iNombre   = headers.findIndex(function(h){ return h.includes('nombre') || h === 'name'; });
+      var iMarca    = headers.findIndex(function(h){ return h.includes('marca') || h === 'brand'; });
+      var iModelo   = headers.findIndex(function(h){ return h.includes('modelo') || h === 'model'; });
+      var iCantidad = headers.findIndex(function(h){ return h.includes('cantidad') || h === 'qty'; });
+      var iPrecio   = headers.findIndex(function(h){ return h.includes('día') || h.includes('dia') || h.includes('precio') || h.includes('price'); });
+
+      if (iNombre < 0) {
+        toast('No se encontró columna Nombre en el Excel', 'var(--red)'); return;
+      }
+
+      var container = document.getElementById('cot-items');
+      var added = 0;
+
+      for (var r = headerIdx + 1; r < rows.length; r++) {
+        var row = rows[r];
+        if (row.every(function(c){ return !String(c).trim(); })) continue;
+
+        var nombre   = iNombre   >= 0 ? String(row[iNombre]  || '').trim() : '';
+        var marca    = iMarca    >= 0 ? String(row[iMarca]   || '').trim() : '';
+        var modelo   = iModelo   >= 0 ? String(row[iModelo]  || '').trim() : '';
+        var cantidad = iCantidad >= 0 ? parseInt(row[iCantidad]) || 1 : 1;
+        var precio   = iPrecio   >= 0 ? parseFloat(row[iPrecio]) || 0 : 0;
+
+        if (!nombre) continue;
+
+        // Find matching equipment in inventory
+        var eq = DB.inventario.find(function(e) {
+          var hayNombre = (e.nombre || '').toLowerCase();
+          var hayMarca  = (e.marca  || '').toLowerCase();
+          var hayModelo = (e.modelo || '').toLowerCase();
+          var needNombre = nombre.toLowerCase();
+          var needMarca  = marca.toLowerCase();
+          var needModelo = modelo.toLowerCase();
+          // Exact match on nombre + marca
+          if (hayNombre === needNombre && (!needMarca || hayMarca === needMarca)) return true;
+          // Partial match
+          if (hayNombre.includes(needNombre) || needNombre.includes(hayNombre)) {
+            if (!needMarca || hayMarca.includes(needMarca) || needMarca.includes(hayMarca)) return true;
+          }
+          return false;
+        });
+
+        var fakeItem = {
+          equipoId:  eq ? String(eq.id) : '',
+          nombre:    eq ? eq.nombre : nombre,
+          marca:     eq ? (eq.marca || '') : marca,
+          modelo:    eq ? (eq.modelo || '') : modelo,
+          idEquipo:  eq ? (eq.serie || String(eq.id)) : '',
+          notas:     eq ? (eq.notas || '') : '',
+          cantidad:  cantidad,
+          precioDia: precio || (eq ? parseFloat(eq.precio) || 0 : 0)
+        };
+
+        addCotItemWithData(fakeItem);
+        added++;
+      }
+
+      recalcTotal();
+      toast('🎸 ' + added + ' equipos importados del Rider Excel', 'var(--accent)');
+    } catch(err) {
+      toast('Error al leer Excel: ' + err.message, 'var(--red)');
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 // ==================== END RIDER IMPORT ====================
 
 </script>
@@ -2345,6 +2453,9 @@ function createCotFromRider() {
           <div class="panel-header">
             <div class="panel-title">🎸 Importar Rider de Artista</div>
           </div>
+          <div id="rider-browser-warn" style="display:none;padding:10px 18px;background:rgba(255,160,0,0.12);border-bottom:1px solid rgba(255,160,0,0.25);font-size:12px;color:var(--accent);display:flex;align-items:center;gap:8px">
+            ⚠️ <span>Esta función requiere <strong>Google Chrome</strong> — Safari bloquea las llamadas a la API de IA. Abre la app en Chrome para usar el importador.</span>
+          </div>
           <div class="panel-body" style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 24px">
             <div style="font-size:64px">📄</div>
             <div style="text-align:center">
@@ -2843,7 +2954,15 @@ function createCotFromRider() {
 
       <div style="margin-top:20px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
         <label style="display:inline">ITEMS DE LA COTIZACIÓN</label>
-        <button class="btn btn-secondary btn-sm" onclick="addCotItem()">+ Agregar Item</button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn btn-secondary btn-sm" onclick="addCotItem()">+ Agregar Item</button>
+          <label style="cursor:pointer;margin:0">
+            <input type="file" id="rider-excel-input" accept=".xlsx,.xls" style="display:none" onchange="importRiderExcel(this)">
+            <span class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:4px">
+              🎸 Importar Rider Excel
+            </span>
+          </label>
+        </div>
       </div>
 
       <div class="quote-items">
@@ -2999,7 +3118,7 @@ function showView(v) {
   if (bnav) bnav.classList.add('active');
   closeSidebar();
   render();
-  if (v === 'rider-import') setTimeout(initRiderDropzone, 80);
+  if (v === 'rider-import') { setTimeout(initRiderDropzone, 80); var w=document.getElementById('rider-browser-warn'); if(w){var isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent); w.style.display=isSafari?'flex':'none';} }
 }
 
 // ==================== MODALS ====================
