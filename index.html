@@ -2946,9 +2946,12 @@ function importRiderExcel(inp) {
       var wb = XLSX.read(e.target.result, { type: 'array' });
       console.log('[RiderExcel] Sheets:', wb.SheetNames);
 
+      // Prefer the clean "IMPORTAR" sheet; fallback to first
       var sheetName = wb.SheetNames.find(function(n) {
+        return n.trim().toUpperCase() === 'IMPORTAR';
+      }) || wb.SheetNames.find(function(n) {
         var clean = n.replace(/[^a-zA-Z]/g, '').toLowerCase();
-        return clean.includes('cotizac') || clean.includes('lista') || clean.includes('import');
+        return clean.includes('import') || clean.includes('cotizac') || clean.includes('lista');
       }) || wb.SheetNames[0];
       console.log('[RiderExcel] Using sheet:', sheetName);
 
@@ -3000,8 +3003,10 @@ function importRiderExcel(inp) {
           var hm = (e.marca  || '').toLowerCase();
           var nn = nombre.toLowerCase();
           var nm = marca.toLowerCase();
+          // Exact nombre + marca
           if (hn === nn && (!nm || hm === nm)) return true;
-          if (hn.includes(nn) || nn.includes(hn)) {
+          // Partial nombre + marca
+          if ((hn.includes(nn) || nn.includes(hn)) && nn.length > 3) {
             if (!nm || hm.includes(nm) || nm.includes(hm)) return true;
           }
           return false;
