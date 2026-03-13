@@ -1235,6 +1235,14 @@
       window._currentUser = user;
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display = 'flex';
+      // Wire rider file input
+      setTimeout(function(){
+        var rfi = document.getElementById('rider-file-input');
+        if (rfi && !rfi._wired) {
+          rfi._wired = true;
+          rfi.addEventListener('change', function(){ riderOnFileChange(rfi); });
+        }
+      }, 1000);
       // Update user info in sidebar
       var userEl = document.getElementById('sidebar-user-email');
       if (userEl) userEl.textContent = user.email;
@@ -1315,10 +1323,18 @@
 var _riderAnalysis = []; // [{riderItem, status, matchedEq, selectedEqId}]
 
 function riderOnFileChange(inp) {
-  if (inp.files && inp.files[0]) {
-    processRiderFile(inp.files[0]);
-    setTimeout(function(){ inp.value = ''; }, 500);
+  var status = document.getElementById('rider-status');
+  status.textContent = 'Verificando archivo...';
+  var files = inp.files;
+  if (!files || files.length === 0) {
+    status.textContent = 'No se detectó archivo. Intenta de nuevo.';
+    return;
   }
+  var file = files[0];
+  status.textContent = 'Archivo detectado: ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+  setTimeout(function() {
+    processRiderFile(file);
+  }, 100);
 }
 
 function riderOpenFile() {}
@@ -2337,8 +2353,11 @@ function createCotFromRider() {
             </div>
             <input type="file" id="rider-file-input" accept=".pdf"
               onchange="riderOnFileChange(this)"
-              style="font-size:14px;color:var(--text1);background:var(--accent);border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-family:var(--font);font-weight:600;color:#1a1a1a">
-            <div id="rider-status" style="display:none;width:100%;padding:14px 18px;border-radius:10px;background:var(--surface2);font-size:13px;color:var(--text2);text-align:center"></div>
+              oninput="riderOnFileChange(this)"
+              style="font-size:14px;background:var(--accent);border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-family:var(--font);font-weight:600;color:#1a1a1a">
+            <div id="rider-status" style="width:100%;min-height:20px;padding:14px 18px;border-radius:10px;background:var(--surface2);font-size:13px;color:var(--text2);text-align:center">
+              Listo para analizar — selecciona un PDF arriba
+            </div>
           </div>
         </div>
         <div id="rider-analysis-panel" style="display:none;margin-top:20px">
