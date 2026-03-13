@@ -1644,13 +1644,17 @@ function importRiderExcel(inp) {
     try {
       var wb   = XLSX.read(e.target.result, { type: 'array' });
 
-      // Look for the cotizacion sheet by name
+      // Find the cotizacion sheet — try by name, fallback to first sheet
+      console.log('[RiderExcel] Sheets found:', wb.SheetNames);
       var sheetName = wb.SheetNames.find(function(n) {
-        return n.toLowerCase().includes('cotizaci') || n.toLowerCase().includes('lista');
+        var clean = n.replace(/[^a-zA-Z]/g, '').toLowerCase();
+        return clean.includes('cotizac') || clean.includes('lista') || clean.includes('import');
       }) || wb.SheetNames[0];
+      console.log('[RiderExcel] Using sheet:', sheetName);
 
       var ws   = wb.Sheets[sheetName];
       var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      console.log('[RiderExcel] Rows found:', rows.length, '| First row:', rows[0]);
 
       if (!rows || rows.length < 2) {
         toast('No se encontraron datos en el Excel', 'var(--red)'); return;
@@ -1672,8 +1676,11 @@ function importRiderExcel(inp) {
       var iCantidad = headers.findIndex(function(h){ return h.includes('cantidad') || h === 'qty'; });
       var iPrecio   = headers.findIndex(function(h){ return h.includes('día') || h.includes('dia') || h.includes('precio') || h.includes('price'); });
 
+      console.log('[RiderExcel] Headers:', headers);
+      console.log('[RiderExcel] Col indices — nombre:', iNombre, 'marca:', iMarca, 'modelo:', iModelo, 'cantidad:', iCantidad, 'precio:', iPrecio);
+
       if (iNombre < 0) {
-        toast('No se encontró columna Nombre en el Excel', 'var(--red)'); return;
+        toast('No se encontró columna Nombre en el Excel — headers: ' + headers.join(', '), 'var(--red)'); return;
       }
 
       var container = document.getElementById('cot-items');
