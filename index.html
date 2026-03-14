@@ -1318,6 +1318,56 @@
     box-shadow: 0 4px 20px rgba(240,165,0,0.4), 0 0 40px rgba(240,165,0,0.15);
   }
 
+
+/* ── Cotización actions dropdown ── */
+.cot-actions { position:relative; display:inline-block; }
+.cot-actions-btn {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  color: var(--text1);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.cot-actions-btn:hover { background: var(--surface4, #333); }
+.cot-dropdown {
+  display: none;
+  position: fixed;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  min-width: 190px;
+  z-index: 9999;
+  overflow: hidden;
+}
+.cot-dropdown.open { display: block; }
+.cot-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text1);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s;
+}
+.cot-dropdown-item:hover { background: var(--surface3); }
+.cot-dropdown-item.danger { color: #e55; }
+.cot-dropdown-item.danger:hover { background: rgba(220,50,50,0.12); }
+.cot-dropdown-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 3px 0;
+}
+
 </style>
 
   <!-- PWA META -->
@@ -4100,14 +4150,22 @@ function renderCotizaciones() {
           ${['Pendiente','Aprobada','Rechazada','Facturada'].map(s=>`<option ${s===q.estado?'selected':''}>${s}</option>`).join('')}
         </select>
       </td>
-      <td style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm" onclick="editCot(${q.id})" title="Editar">✏️</button>
-        <button class="btn btn-secondary btn-sm" style="background:rgba(0,200,100,0.1);color:#00c864;border-color:#00c864" onclick="openPagosModal('${q.id}')" title="Registrar pago">💰 Cobro</button>
-        <button class="btn btn-secondary btn-sm" onclick="exportPDF(${q.id})">📄</button>
-        <button class="btn btn-secondary btn-sm" style="background:var(--blue-dim);color:var(--blue);border-color:var(--blue)" onclick="exportRider(${q.id})">📋</button>
-        <button class="btn btn-secondary btn-sm" style="background:rgba(100,200,100,0.1);color:#6dc26d;border-color:#6dc26d" onclick="exportContrato(${q.id})">📝</button>
-        <button class="btn btn-secondary btn-sm" style="background:rgba(240,165,0,0.12);color:var(--accent);border-color:var(--accent)" onclick="openRiderCheckoutForCot(${q.id})">🎛</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteCot(${q.id})">🗑️</button>
+      <td>
+        <div class="cot-actions" id="cot-actions-${q.id}">
+          <button class="cot-actions-btn" onclick="toggleCotDropdown(${q.id}, event)">⋯</button>
+          <div class="cot-dropdown" id="cot-dropdown-${q.id}">
+            <button class="cot-dropdown-item" onclick="closeCotDropdowns();editCot(${q.id})">✏️ &nbsp;Editar</button>
+            <button class="cot-dropdown-item" onclick="closeCotDropdowns();openPagosModal('${q.id}')">💰 &nbsp;Registrar cobro</button>
+            <div class="cot-dropdown-sep"></div>
+            <button class="cot-dropdown-item" onclick="closeCotDropdowns();exportPDF(${q.id})">📄 &nbsp;Cotización PDF</button>
+            <button class="cot-dropdown-item" onclick="closeCotDropdowns();exportRider(${q.id})">📋 &nbsp;Rider PDF</button>
+            <button class="cot-dropdown-item" onclick="closeCotDropdowns();exportContrato(${q.id})">📝 &nbsp;Contrato PDF</button>
+            <div class="cot-dropdown-sep"></div>
+            <button class="cot-dropdown-item" onclick="closeCotDropdowns();openRiderCheckoutForCot(${q.id})">🎛 &nbsp;Check in/out</button>
+            <div class="cot-dropdown-sep"></div>
+            <button class="cot-dropdown-item danger" onclick="closeCotDropdowns();deleteCot(${q.id})">🗑️ &nbsp;Eliminar</button>
+          </div>
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -6663,6 +6721,54 @@ function exportReportesExcel() {
 }
 
 
+
+
+// ── Cotización dropdown actions ──────────────────────────────────────────────
+function toggleCotDropdown(id, e) {
+  e.stopPropagation();
+  var dd = document.getElementById('cot-dropdown-' + id);
+  if (!dd) return;
+  var isOpen = dd.classList.contains('open');
+  closeCotDropdowns();
+  if (!isOpen) {
+    // Position dropdown relative to button using fixed coords
+    var btn = e.currentTarget || e.target;
+    var rect = btn.getBoundingClientRect();
+    var dropW = 190;
+    var left = rect.right - dropW;
+    if (left < 4) left = 4;
+    var top = rect.bottom + 4;
+    // Flip up if too close to bottom
+    if (top + 320 > window.innerHeight) top = rect.top - 4 - dd.offsetHeight;
+    dd.style.left = left + 'px';
+    dd.style.top  = top  + 'px';
+    dd.classList.add('open');
+    // Recalc after render in case height wasn't known
+    requestAnimationFrame(function() {
+      var h = dd.offsetHeight;
+      if (rect.bottom + 4 + h > window.innerHeight) {
+        dd.style.top = (rect.top - 4 - h) + 'px';
+      }
+    });
+  }
+}
+
+function closeCotDropdowns() {
+  document.querySelectorAll('.cot-dropdown.open').forEach(function(d){ d.classList.remove('open'); });
+}
+
+// Close on click outside
+document.addEventListener('click', function(e) {
+  var inside = false;
+  var el = e.target;
+  while (el) {
+    if (el.classList && (el.classList.contains('cot-actions') || el.classList.contains('cot-dropdown'))) {
+      inside = true; break;
+    }
+    el = el.parentElement;
+  }
+  if (!inside) closeCotDropdowns();
+});
 
 
 // ==================== PWA / SERVICE WORKER ====================
