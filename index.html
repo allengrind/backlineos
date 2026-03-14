@@ -5404,10 +5404,25 @@ function renderMobileCards() {
         html += (q.fecha||'') + ' · ' + (q.items ? q.items.length : 0) + ' items · ' + (q.dias||1) + ' día(s)</div>';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">';
         html += '<div style="font-family:var(--font-cond);font-size:22px;font-weight:900;color:var(--green)">' + totalStr + '</div>';
-        html += '<div style="display:flex;gap:6px">';
-        html += '<button class="btn btn-secondary btn-sm" onclick="exportPDF(' + q.id + ')" style="font-size:11px;padding:6px 10px">📄</button>';
-        html += '<button class="btn btn-secondary btn-sm" onclick="exportRider(' + q.id + ')" style="background:var(--blue-dim);color:var(--blue);border-color:var(--blue);font-size:11px;padding:6px 10px">📋</button>';
-        html += '<button class="btn btn-danger btn-sm" onclick="deleteCot(' + q.id + ')" style="font-size:11px;padding:6px 10px">🗑️</button>';
+        html += '<div style="display:flex;align-items:center;gap:8px">';
+        var ep2 = q.estatusPago || 'Sin pago';
+        var epColor2 = ep2==='Pagado'?'#00c864': ep2==='Anticipo'?'#f0a500':'#dc3232';
+        var epBg2    = ep2==='Pagado'?'rgba(0,200,100,0.1)': ep2==='Anticipo'?'rgba(240,165,0,0.1)':'rgba(220,50,50,0.1)';
+        html += '<span style="font-family:var(--font-mono);font-size:11px;color:'+epColor2+';background:'+epBg2+';padding:3px 8px;border-radius:4px;font-weight:700">'+ep2+'</span>';
+        html += '<div class="cot-actions" id="cot-actions-mob-' + q.id + '" style="margin-left:auto">';
+        html += '<button class="cot-actions-btn" onclick="toggleCotDropdown(\'mob-' + q.id + '\', event)">⋯</button>';
+        html += '<div class="cot-dropdown" id="cot-dropdown-mob-' + q.id + '">';
+        html += '<button class="cot-dropdown-item" onclick="closeCotDropdowns();editCot(' + q.id + ')">✏️ &nbsp;Editar</button>';
+        html += '<button class="cot-dropdown-item" onclick="closeCotDropdowns();openPagosModal(\'' + q.id + '\')">💰 &nbsp;Registrar cobro</button>';
+        html += '<div class="cot-dropdown-sep"></div>';
+        html += '<button class="cot-dropdown-item" onclick="closeCotDropdowns();exportPDF(' + q.id + ')">📄 &nbsp;Cotización PDF</button>';
+        html += '<button class="cot-dropdown-item" onclick="closeCotDropdowns();exportRider(' + q.id + ')">📋 &nbsp;Rider PDF</button>';
+        html += '<button class="cot-dropdown-item" onclick="closeCotDropdowns();exportContrato(' + q.id + ')">📝 &nbsp;Contrato PDF</button>';
+        html += '<div class="cot-dropdown-sep"></div>';
+        html += '<button class="cot-dropdown-item" onclick="closeCotDropdowns();openRiderCheckoutForCot(' + q.id + ')">🎛 &nbsp;Check in/out</button>';
+        html += '<div class="cot-dropdown-sep"></div>';
+        html += '<button class="cot-dropdown-item danger" onclick="closeCotDropdowns();deleteCot(' + q.id + ')">🗑️ &nbsp;Eliminar</button>';
+        html += '</div></div>';
         html += '</div></div></div>';
         return html;
       }).join('');
@@ -6746,8 +6761,12 @@ function toggleCotDropdown(id, e) {
     // Recalc after render in case height wasn't known
     requestAnimationFrame(function() {
       var h = dd.offsetHeight;
-      if (rect.bottom + 4 + h > window.innerHeight) {
+      var spaceBelow = window.innerHeight - rect.bottom - 4;
+      var spaceAbove = rect.top - 4;
+      if (spaceBelow < h && spaceAbove > spaceBelow) {
         dd.style.top = (rect.top - 4 - h) + 'px';
+      } else {
+        dd.style.top = (rect.bottom + 4) + 'px';
       }
     });
   }
