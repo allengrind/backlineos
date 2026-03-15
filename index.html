@@ -2808,8 +2808,13 @@ function createCotFromRider() {
     </div>
     <div class="modal-footer" id="altamasiva-footer" style="display:none">
       <button class="btn btn-secondary" onclick="closeModal('modal-alta-masiva')">Cancelar</button>
-      <button class="btn btn-primary" onclick="confirmarAltaMasiva()" id="altamasiva-import-btn">
-        📥 Importar equipos
+      <button class="btn btn-secondary" onclick="confirmarAltaMasiva('reemplazar')"
+        style="background:rgba(220,50,50,0.12);color:#e55;border-color:#e55"
+        id="altamasiva-replace-btn" title="Borra el inventario actual y carga solo los nuevos equipos">
+        🗑️ Reemplazar inventario
+      </button>
+      <button class="btn btn-primary" onclick="confirmarAltaMasiva('agregar')" id="altamasiva-import-btn">
+        📥 Agregar al inventario
       </button>
     </div>
   </div>
@@ -8101,13 +8106,20 @@ function altaMasivaReset() {
   document.getElementById('altamasiva-footer').style.display = 'none';
 }
 
-function confirmarAltaMasiva() {
+function confirmarAltaMasiva(mode) {
   var skipErrors = document.getElementById('altamasiva-skip-errors').checked;
   var toImport = skipErrors
     ? altaMasivaRows.filter(function(r){ return r.errors.length === 0; })
     : altaMasivaRows;
 
   if (toImport.length === 0) { toast('No hay equipos válidos para importar', 'var(--red)'); return; }
+
+  // Reemplazar: confirmar y limpiar inventario existente
+  if (mode === 'reemplazar') {
+    var total_actual = DB.inventario.length;
+    if (!confirm('\u26A0\uFE0F REEMPLAZAR INVENTARIO\n\nEsto eliminará los ' + total_actual + ' equipos actuales y cargará ' + toImport.length + ' equipos nuevos.\n\n¿Estás seguro? Esta acción no se puede deshacer.')) return;
+    DB.inventario = [];
+  }
 
   var now = new Date().toISOString();
   var added = 0;
@@ -8124,7 +8136,10 @@ function confirmarAltaMasiva() {
   closeModal('modal-alta-masiva');
   altaMasivaReset();
   render();
-  toast('✅ ' + added + ' equipos importados al inventario', 'var(--green)');
+  var msg = mode === 'reemplazar'
+    ? '✅ Inventario reemplazado: ' + added + ' equipos cargados'
+    : '✅ ' + added + ' equipos agregados al inventario';
+  toast(msg, 'var(--green)');
 }
 
 
