@@ -5372,7 +5372,7 @@ function exportPDF(id) {
   // Totals — check if enough space, add page if needed
   y += 8;
   // Estimate space needed: totals (~50) + grand total (20) + notas (30) + firmas (35) = ~135mm
-  if (y > 155) { doc.addPage(); y = 20; }
+  if (y > 145) { doc.addPage(); y = 20; }
   const fmt = v => '$' + v.toLocaleString('es-MX', { minimumFractionDigits: 2 });
   const subtotal  = q.subtotal || q.total;
   const extras    = q.extras   || 0;
@@ -5439,9 +5439,9 @@ function exportPDF(id) {
     y += 24;
   }
 
-  // Firmas
+  // Firmas — ensure enough space before footer (stop at 265)
   y += 4;
-  if (y > 248) { doc.addPage(); y = 20; }
+  if (y > 240) { doc.addPage(); y = 20; }
   doc.setDrawColor(203, 213, 224);
   doc.setLineWidth(0.4);
   var sigW = 52;
@@ -8291,36 +8291,48 @@ function pdfWatermark(doc) {
 
 
 function pdfFooter(doc) {
-  var W = 215.9;
-  var pageCount = doc.internal.getNumberOfPages();
+  var W   = 215.9;
+  var H   = 279.4;   // letter height mm
   var cfg = DB.config || {};
+  var pageCount = doc.internal.getNumberOfPages();
+
   for (var p = 1; p <= pageCount; p++) {
     doc.setPage(p);
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.3);
-    doc.line(14, 272, W - 14, 272);
+
+    // ── Border top of footer ──────────────────────────────────────────
+    doc.setDrawColor(203, 213, 224);
+    doc.setLineWidth(0.4);
+    doc.line(0, H - 14, W, H - 14);
+
+    // ── Footer background ─────────────────────────────────────────────
     doc.setFillColor(247, 249, 252);
-    doc.rect(0, 273, W, 12, 'F');
-    // Brand mark
+    doc.rect(0, H - 14, W, 14, 'F');
+
+    // ── Brand: E[K]O · BACKLINE (left) ───────────────────────────────
+    var bY = H - 6;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(10, 15, 30);
-    doc.text('EKO', 14, 280);
+    var eW = doc.getTextWidth('E');
+    doc.text('E', 14, bY);
     doc.setTextColor(27, 79, 216);
-    doc.text('K', 14 + doc.getTextWidth('E'), 280);
+    doc.text('K', 14 + eW, bY);
     doc.setTextColor(10, 15, 30);
-    doc.text('O · BACKLINE', 14 + doc.getTextWidth('EK'), 280);
-    // Dots
+    doc.text('O · BACKLINE', 14 + doc.getTextWidth('EK'), bY);
+
+    // ── Dots (center) ────────────────────────────────────────────────
     for (var d = 0; d < 3; d++) {
       doc.setFillColor(191, 207, 255);
-      doc.circle(W/2 - 4 + d*4, 278.5, 1, 'F');
+      doc.circle(W / 2 - 3 + d * 3.5, H - 7.5, 0.9, 'F');
     }
-    // Meta right
+
+    // ── Meta (right) ─────────────────────────────────────────────────
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
     doc.setTextColor(160, 174, 192);
-    doc.text('Stage Equipment · Live Production', W - 14, 278, { align: 'right' });
-    doc.text((cfg.email || '') + '  ·  ' + (cfg.tel || ''), W - 14, 282.5, { align: 'right' });
+    doc.text('Stage Equipment · Live Production', W - 14, H - 9, { align: 'right' });
+    var contact = [cfg.email, cfg.tel].filter(Boolean).join('  ·  ');
+    if (contact) doc.text(contact, W - 14, H - 4.5, { align: 'right' });
   }
 }
 
