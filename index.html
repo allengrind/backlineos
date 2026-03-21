@@ -1481,17 +1481,49 @@
 
   // ── Firestore listener extracted as function ──
   function startFirestoreListener() {
+    var _firstSnapshot = true;
+
     onSnapshot(DOC_REF, function(snap) {
-      if (!snap.exists()) return;
-      var remote = snap.data();
-      if (!remote || !remote.inventario) return;
-      var remoteTs = remote._ts || 0;
+      var remote = snap.exists() ? snap.data() : null;
+      var remoteTs = (remote && remote._ts) ? remote._ts : 0;
       var localTs  = window._localTs || 0;
-      if (remoteTs <= localTs) return;
-      // Don't overwrite DB within 4s of a local save (avoid race condition)
       var msSinceLocalSave = Date.now() - (window._localSaveTime || 0);
+
+      // ── First snapshot: always trust remote if it has data ──────────────
+      if (_firstSnapshot) {
+        _firstSnapshot = false;
+        var localIsEmpty = !DB.inventario || DB.inventario.length === 0;
+        var remoteHasData = remote && remote.inventario && remote.inventario.length > 0;
+
+        if (remoteHasData && (localIsEmpty || remoteTs > localTs)) {
+          // Remote has real data — use it
+          window._remoteUpdate = true;
+          DB = remote;
+          localStorage.setItem('backline_db', JSON.stringify(DB));
+          window._localTs = remoteTs;
+          render();
+          updateSyncIndicator('synced');
+          window._remoteUpdate = false;
+          console.log('[Firestore] First sync — loaded remote data, items:', DB.inventario.length);
+        } else if (!remoteHasData && !localIsEmpty) {
+          // Local has data but remote is empty — push local up
+          var ts = Date.now();
+          window._localTs = ts;
+          window._localSaveTime = ts;
+          var payload = JSON.parse(JSON.stringify(Object.assign({}, DB, { _ts: ts })));
+          if (typeof window.fbSave === 'function') window.fbSave(payload);
+          updateSyncIndicator('saving');
+          console.log('[Firestore] First sync — pushed local data to remote');
+        }
+        return;
+      }
+
+      // ── Subsequent snapshots ─────────────────────────────────────────────
+      if (!remote || !remote.inventario) return;
+      if (remoteTs <= localTs) return;
+      // Don't overwrite during local save window
       if (msSinceLocalSave < 4000) {
-        console.log('[Firestore] Ignoring remote update — local save was', msSinceLocalSave, 'ms ago');
+        console.log('[Firestore] Ignoring remote — local save was', msSinceLocalSave, 'ms ago');
         return;
       }
       window._remoteUpdate = true;
@@ -1501,18 +1533,11 @@
       render();
       updateSyncIndicator('synced');
       window._remoteUpdate = false;
+
     }, function(err) {
-      console.warn('Firebase listener error:', err);
+      console.warn('[Firestore] Listener error:', err);
       updateSyncIndicator('error');
     });
-    // Upload local data on first connect
-    setTimeout(function() {
-      if (typeof window.fbSave === 'function' && DB.inventario && DB.inventario.length > 0) {
-        var ts = Date.now();
-        window._localTs = ts;
-        window.fbSave(Object.assign({}, DB, { _ts: ts }));
-      }
-    }, 2000);
   }
 
 // ==================== RIDER IMPORT ====================
@@ -10550,15 +10575,8 @@ function applyRoles() {
 var loginLogo = document.getElementById('login-logo');
 if (loginLogo) { try { loginLogo.src = LOGO_B64; } catch(e) {} }
 loadDB();
-// Upload local data to Firebase on first load (migration)
+// Set local timestamp from saved DB
 window._localTs = DB._ts || 0;
-setTimeout(function() {
-  if (typeof window.fbSave === 'function' && DB.inventario && DB.inventario.length > 0) {
-    var ts = Date.now();
-    window._localTs = ts;
-    window.fbSave(Object.assign({}, DB, { _ts: ts }));
-  }
-}, 2000);
 // Add demo data if empty
 if (DB.inventario.length === 0) {
   DB.inventario = [
