@@ -498,6 +498,12 @@
   .filter-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(46,111,255,0.04); }
   /* ── Mobile filter select ─────────────────────────────────────── */
   .mobile-filter-select { display: none; }
+  .mobile-filter-select select {
+    width: 100%; padding: 12px 16px; font-size: 15px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text1);
+    -webkit-appearance: auto; appearance: auto;
+  }
   @media (max-width: 768px) {
     .desktop-filters { display: none !important; }
     .mobile-filter-select { display: block; margin-bottom: 12px; }
@@ -2105,7 +2111,7 @@ function createCotFromRider() {
       <!-- ====== INVENTARIO ====== -->
       <div class="view" id="view-inventario">
         <div class="inv-header-row">
-          <div class="filter-bar" style="margin-bottom:0">
+          <div class="filter-bar desktop-filters" style="margin-bottom:0">
             <button class="filter-btn active" onclick="filterInv('Todos',this)">Todos</button>
             <button class="filter-btn" onclick="filterInv('Drum Kits',this)">Drum Kits</button>
             <button class="filter-btn" onclick="filterInv('Cymbals',this)">Cymbals</button>
@@ -2116,6 +2122,21 @@ function createCotFromRider() {
             <button class="filter-btn" onclick="filterInv('Keyboards',this)">Keyboards</button>
             <button class="filter-btn" onclick="filterInv('Accessories',this)">Accessories</button>
             <button class="filter-btn" onclick="filterInv('Specials',this)">Specials</button>
+          </div>
+          <!-- Filtros móvil -->
+          <div class="mobile-filter-select">
+            <select id="inv-mobile-select" onchange="filterInvMobile(this)">
+              <option value="Todos">📦 Todos los equipos</option>
+              <option value="Drum Kits">🥁 Drum Kits</option>
+              <option value="Cymbals">🎵 Cymbals</option>
+              <option value="Percussion">🪘 Percussion</option>
+              <option value="Amplifiers">🔊 Amplifiers</option>
+              <option value="Cabinets">📦 Cabinets</option>
+              <option value="Instruments">🎸 Instruments</option>
+              <option value="Keyboards">🎹 Keyboards</option>
+              <option value="Accessories">🔧 Accessories</option>
+              <option value="Specials">⭐ Specials</option>
+            </select>
           </div>
           <div class="inv-header-btns">
             <button class="btn btn-secondary" onclick="openScanner('alta')" title="Alta rápida por QR/Código de barras" style="gap:6px">
@@ -3667,8 +3688,8 @@ function toast(msg, color='var(--green)') {
 }
 
 // ==================== INVENTARIO ====================
-let invFilter = 'Todos';
-let editingEquipoId = null;
+var invFilter = 'Todos';
+var editingEquipoId = null;
 
 function clearEquipoForm() {
   ['eq-nombre','eq-cat','eq-estado','eq-marca','eq-modelo','eq-serie','eq-precio','eq-valor','eq-notas'].forEach(id => {
@@ -3896,9 +3917,10 @@ function filterInv(cat, btn) {
   renderInventario();
 }
 function filterInvMobile(sel) {
-  invFilter = sel.value;
+  var cat = sel ? sel.value : document.getElementById('inv-mobile-select').value;
+  invFilter = cat;
   document.querySelectorAll('.filter-btn').forEach(function(b) {
-    b.classList.toggle('active', b.textContent.trim() === invFilter);
+    b.classList.toggle('active', b.textContent.trim() === cat);
   });
   renderInventario();
 }
