@@ -3436,6 +3436,7 @@ function importRiderExcel(inp) {
       var iNombre   = headers.findIndex(function(h){ return h.includes('nombre') || h === 'name'; });
       var iMarca    = headers.findIndex(function(h){ return h.includes('marca') || h === 'brand'; });
       var iModelo   = headers.findIndex(function(h){ return h.includes('modelo') || h === 'model'; });
+      var iSerie    = headers.findIndex(function(h){ return h.includes('id serie') || h.includes('serie') || h === 'id'; });
       var iCantidad = headers.findIndex(function(h){ return h.includes('cantidad') || h === 'qty'; });
       var iPrecio   = headers.findIndex(function(h){ return h.includes('día') || h.includes('dia') || h.includes('precio') || h.includes('price'); });
       var iSeccion  = headers.findIndex(function(h){ return h.includes('secci') || h.includes('section') || h === 'seccion'; });
@@ -3452,22 +3453,42 @@ function importRiderExcel(inp) {
         var nombre   = String(row[iNombre]  || '').trim();
         var marca    = iMarca    >= 0 ? String(row[iMarca]   || '').trim() : '';
         var modelo   = iModelo   >= 0 ? String(row[iModelo]  || '').trim() : '';
+        var serie    = iSerie    >= 0 ? String(row[iSerie]   || '').trim() : '';
         var cantidad = iCantidad >= 0 ? parseInt(row[iCantidad])   || 1 : 1;
         var precio   = iPrecio   >= 0 ? parseFloat(row[iPrecio])   || 0 : 0;
 
         if (!nombre) continue;
 
-        // Match: exact nombre+marca → exact nombre → partial
-        var eq = DB.inventario.find(function(e) {
-          return (e.nombre||'').toLowerCase() === nombre.toLowerCase() &&
-                 (!marca || (e.marca||'').toLowerCase() === marca.toLowerCase());
-        }) || DB.inventario.find(function(e) {
-          return (e.nombre||'').toLowerCase() === nombre.toLowerCase();
-        }) || DB.inventario.find(function(e) {
-          var hn = (e.nombre||'').toLowerCase();
-          var nn = nombre.toLowerCase();
-          return nn.length > 4 && (hn.includes(nn) || nn.includes(hn));
-        });
+        // Match: 1) ID Serie directo → 2) nombre+marca exacto → 3) nombre exacto
+        var eq = null;
+        // 1. Match por ID Serie (más preciso — viene del análisis de Claude)
+        if (serie && serie !== '—') {
+          eq = DB.inventario.find(function(e) {
+            return (e.serie||'').toUpperCase() === serie.toUpperCase() ||
+                   String(e.id) === serie;
+          });
+        }
+        // 2. Match por nombre + marca exacto
+        if (!eq) {
+          eq = DB.inventario.find(function(e) {
+            return (e.nombre||'').toLowerCase() === nombre.toLowerCase() &&
+                   (!marca || (e.marca||'').toLowerCase() === marca.toLowerCase());
+          });
+        }
+        // 3. Match por nombre exacto
+        if (!eq) {
+          eq = DB.inventario.find(function(e) {
+            return (e.nombre||'').toLowerCase() === nombre.toLowerCase();
+          });
+        }
+        // 4. Match parcial SOLO si nombre+modelo coinciden (evitar falsos positivos)
+        if (!eq && modelo) {
+          eq = DB.inventario.find(function(e) {
+            var nm = ((e.nombre||'') + ' ' + (e.modelo||'')).toLowerCase();
+            var buscado = (nombre + ' ' + modelo).toLowerCase();
+            return nm === buscado;
+          });
+        }
 
         addCotItemWithData({
           equipoId:  eq ? String(eq.id) : '',
