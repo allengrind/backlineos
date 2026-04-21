@@ -1387,6 +1387,82 @@
   margin: 3px 0;
 }
 
+/* ══════════════════════════════════════
+   RIDER ANALYZER MODULE STYLES
+══════════════════════════════════════ */
+#view-rider { padding: 0; }
+.rider-module-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.rider-module-header h2 { font-family: var(--font-cond); font-size: 18px; font-weight: 700; letter-spacing: 0.06em; }
+.rider-module-header h2 span { color: var(--blue); }
+.rider-module-header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.rider-body { max-width: 1400px; margin: 0 auto; padding: 20px 24px; display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+@media (max-width: 900px) { .rider-body { grid-template-columns: 1fr; } }
+.rider-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px; }
+.rider-panel-title { background: var(--surface2); padding: 10px 14px; font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--blue); }
+.rider-panel-body { padding: 16px; }
+.rider-upload-zone { border: 2px dashed var(--border2); border-radius: var(--radius-md); padding: 24px 14px; text-align: center; cursor: pointer; transition: all .2s; position: relative; margin-bottom: 14px; }
+.rider-upload-zone:hover, .rider-upload-zone.drag-over { border-color: var(--accent); background: var(--accent-dim); }
+.rider-upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.rider-upload-zone.has-file { border-color: var(--accent); background: var(--accent-dim); }
+.rider-inv-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.rider-inv-tab { flex: 1; padding: 7px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: transparent; color: var(--text2); font-size: 11px; cursor: pointer; transition: all .2s; text-align: center; }
+.rider-inv-tab.active { background: var(--accent); border-color: var(--accent); color: white; font-weight: 600; }
+.rider-api-notice { background: rgba(0,207,255,0.08); border: 1px solid rgba(0,207,255,0.2); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 12px; font-size: 11px; color: var(--blue); line-height: 1.5; }
+.rider-progress-wrap { display: none; margin: 14px 0; }
+.rider-progress-wrap.visible { display: block; }
+.rider-progress-label { font-size: 11px; color: var(--text2); margin-bottom: 5px; display: flex; justify-content: space-between; }
+.rider-progress-bar { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.rider-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--blue)); border-radius: 3px; transition: width .4s ease; }
+.rider-steps { margin-top: 8px; }
+.rider-step { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--text3); padding: 3px 0; }
+.rider-step.active { color: var(--text); }
+.rider-step.done { color: var(--blue); }
+.rider-step-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 8px; flex-shrink: 0; }
+.rider-step.active .rider-step-dot { background: var(--accent); }
+.rider-step.done .rider-step-dot { background: var(--blue); color: var(--bg); }
+.rider-stats { display: none; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px; }
+.rider-stats.visible { display: grid; }
+.rider-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; text-align: center; }
+.rider-stat .num { font-size: 24px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
+.rider-stat .lbl { font-size: 10px; color: var(--text2); letter-spacing: 0.08em; text-transform: uppercase; }
+.rs-total .num { color: var(--blue); } .rs-exact .num { color: var(--green); } .rs-partial .num { color: #eab308; } .rs-missing .num { color: var(--red); }
+.rider-results-panel { display: none; }
+.rider-results-panel.visible { display: block; }
+.rider-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+.rider-filter { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all .2s; letter-spacing: 0.04em; }
+.rider-filter.all { border-color: var(--accent); color: var(--accent); }
+.rider-filter.all.active { background: var(--accent); color: white; }
+.rider-filter.exact { border-color: var(--green); color: var(--green); }
+.rider-filter.exact.active { background: var(--green); color: var(--bg); }
+.rider-filter.partial { border-color: #eab308; color: #eab308; }
+.rider-filter.partial.active { background: #eab308; color: #111; }
+.rider-filter.missing { border-color: var(--red); color: var(--red); }
+.rider-filter.missing.active { background: var(--red); color: white; }
+.rider-table-wrap { overflow-x: auto; max-height: 480px; overflow-y: auto; }
+.rider-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.rider-table th { background: var(--surface2); color: var(--text2); padding: 9px 10px; text-align: left; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1; }
+.rider-table td { padding: 9px 10px; border-bottom: 1px solid rgba(30,36,56,.6); vertical-align: middle; }
+.rider-table tr:hover td { background: var(--accent-dim); }
+.rider-table tr.row-exact td:first-child { border-left: 3px solid var(--green); }
+.rider-table tr.row-partial td:first-child { border-left: 3px solid #eab308; }
+.rider-table tr.row-missing td:first-child { border-left: 3px solid var(--red); }
+.rider-table tr.row-section td { background: var(--surface2); color: var(--blue); font-weight: 700; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 10px; }
+.rider-badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+.badge-exact { background: rgba(0,214,143,.12); color: var(--green); border: 1px solid var(--green); }
+.badge-partial { background: rgba(234,179,8,.12); color: #eab308; border: 1px solid #eab308; }
+.badge-missing { background: rgba(255,71,87,.1); color: var(--red); border: 1px solid var(--red); }
+.rider-serie { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-family: var(--font-mono); background: var(--accent-dim); color: var(--blue); border: 1px solid var(--accent-glow); }
+.rider-missing-section { display: none; border: 1px solid rgba(255,71,87,.25); border-radius: var(--radius-sm); overflow: hidden; margin-top: 14px; }
+.rider-missing-section.visible { display: block; }
+.rider-missing-title { background: rgba(255,71,87,.12); padding: 8px 12px; font-size: 10px; font-weight: 700; color: var(--red); letter-spacing: 0.1em; text-transform: uppercase; }
+.rider-missing-list { padding: 10px 12px; }
+.rider-missing-item { display: flex; align-items: flex-start; gap: 7px; padding: 5px 0; border-bottom: 1px solid rgba(255,71,87,.08); font-size: 11px; }
+.rider-missing-item:last-child { border-bottom: none; }
+.rider-missing-qty { background: rgba(255,71,87,.15); color: var(--red); border-radius: 3px; padding: 1px 5px; font-weight: 700; font-size: 10px; flex-shrink: 0; }
+.rider-empty-state { text-align: center; padding: 50px 20px; color: var(--text3); }
+.rider-error-box { background: rgba(255,71,87,.1); border: 1px solid rgba(255,71,87,.3); border-radius: var(--radius-sm); padding: 10px; margin-top: 10px; font-size: 12px; color: #fca5a5; display: none; }
+.rider-error-box.visible { display: block; }
+
 </style>
 
   <!-- PWA META -->
@@ -1951,6 +2027,9 @@ function createCotFromRider() {
         <span class="nav-icon">📋</span> Cotizaciones
         <span class="badge" id="badge-cot">0</span>
       </button>
+      <button class="nav-btn" onclick="showView('rider');if(window.innerWidth<=768)closeSidebar()">
+        <span class="nav-icon">🎛</span> Rider Analyzer
+      </button>
 
       <div class="nav-section">Operaciones</div>
       <button class="nav-btn" onclick="showView('movimientos');if(window.innerWidth<=768)closeSidebar()">
@@ -2243,6 +2322,135 @@ function createCotFromRider() {
             </table>
           </div>
           <div class="mobile-cards" id="mobile-cot-cards"></div>
+        </div>
+      </div>
+
+      <!-- ====== RIDER ANALYZER ====== -->
+      <div class="view" id="view-rider">
+        <div class="rider-module-header">
+          <div>
+            <h2>🎛 RIDER <span>ANALYZER</span></h2>
+            <p>Analiza riders técnicos contra el inventario y genera cotizaciones automáticamente</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm" onclick="riderExportExcel()" id="rider-btn-excel" style="display:none">⬇ Excel</button>
+            <button class="btn btn-primary btn-sm" onclick="riderOpenImport()" id="rider-btn-import" style="display:none">🚀 Importar a Cotización</button>
+          </div>
+        </div>
+
+        <!-- STATS STRIP -->
+        <div style="max-width:1400px;margin:0 auto;padding:16px 24px 0">
+          <div class="rider-stats" id="rider-stats">
+            <div class="rider-stat rs-total"><div class="num" id="rst-total">0</div><div class="lbl">Total Items</div></div>
+            <div class="rider-stat rs-exact"><div class="num" id="rst-exact">0</div><div class="lbl">✅ Exacto</div></div>
+            <div class="rider-stat rs-partial"><div class="num" id="rst-partial">0</div><div class="lbl">🟡 Parcial</div></div>
+            <div class="rider-stat rs-missing"><div class="num" id="rst-missing">0</div><div class="lbl">❌ Faltante</div></div>
+          </div>
+        </div>
+
+        <div class="rider-body">
+          <!-- LEFT: Controls -->
+          <div>
+            <div class="rider-panel">
+              <div class="rider-panel-title">📄 Rider Técnico</div>
+              <div class="rider-panel-body">
+                <div class="rider-upload-zone" id="rider-upload-zone">
+                  <input type="file" id="rider-file-input" accept=".pdf,.docx,.txt" onchange="riderHandleFile(this)">
+                  <div id="rider-upload-icon" style="font-size:28px;margin-bottom:6px">📄</div>
+                  <div id="rider-upload-label" style="font-size:13px;color:var(--text2)">Arrastra el PDF del rider aquí</div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:3px">PDF · DOCX · TXT</div>
+                </div>
+                <div class="field">
+                  <label class="label">Cliente / Artista</label>
+                  <input type="text" id="rider-client" class="form-input" placeholder="Ej: Billy Idol · Napoleon &amp; Mocedades">
+                </div>
+                <div class="field">
+                  <label class="label">Evento / Lugar</label>
+                  <input type="text" id="rider-event" class="form-input" placeholder="Ej: Plaza de Armas · Foro Sol">
+                </div>
+              </div>
+            </div>
+
+            <div class="rider-panel">
+              <div class="rider-panel-title">📦 Inventario a usar</div>
+              <div class="rider-panel-body">
+                <div class="rider-inv-tabs">
+                  <button class="rider-inv-tab active" id="rider-tab-live" onclick="riderSetTab('live')">🔴 BacklineOS Live</button>
+                  <button class="rider-inv-tab" id="rider-tab-csv" onclick="riderSetTab('csv')">📁 Subir CSV</button>
+                </div>
+                <div id="rider-live-panel">
+                  <p style="font-size:12px;color:var(--text2);line-height:1.5">Inventario activo del sistema.<br><strong style="color:var(--blue)" id="rider-inv-count">Cargando...</strong></p>
+                </div>
+                <div id="rider-csv-panel" style="display:none">
+                  <div class="field">
+                    <label class="label">CSV del inventario</label>
+                    <input type="file" id="rider-csv-input" accept=".csv" class="form-input" onchange="riderHandleCSV(this)">
+                  </div>
+                  <p style="font-size:11px;color:var(--text3)">Exporta desde Configuración → Exportar DB</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="rider-panel">
+              <div class="rider-panel-body">
+                <div class="rider-api-notice">⚡ Usa la <strong>API de Claude</strong> para análisis inteligente. ~15–30s según el tamaño del rider.</div>
+                <button class="btn btn-primary" style="width:100%;justify-content:center" id="rider-btn-analyze" onclick="riderRunAnalysis()" disabled>🔍 Analizar Rider</button>
+                <div class="rider-error-box" id="rider-error-box"></div>
+                <div class="rider-progress-wrap" id="rider-progress-wrap">
+                  <div class="rider-progress-label"><span id="rider-progress-label">Iniciando...</span><span id="rider-progress-pct">0%</span></div>
+                  <div class="rider-progress-bar"><div class="rider-progress-fill" id="rider-progress-fill"></div></div>
+                  <div class="rider-steps">
+                    <div class="rider-step" id="rs1"><div class="rider-step-dot">1</div> Leyendo rider PDF</div>
+                    <div class="rider-step" id="rs2"><div class="rider-step-dot">2</div> Preparando inventario</div>
+                    <div class="rider-step" id="rs3"><div class="rider-step-dot">3</div> Analizando con Claude AI</div>
+                    <div class="rider-step" id="rs4"><div class="rider-step-dot">4</div> Procesando resultados</div>
+                    <div class="rider-step" id="rs5"><div class="rider-step-dot">5</div> ¡Listo!</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Results -->
+          <div>
+            <div class="rider-panel" id="rider-empty-panel">
+              <div class="rider-empty-state">
+                <div class="icon">🎚</div>
+                <p>Sube un rider y presiona <strong>Analizar Rider</strong></p>
+              </div>
+            </div>
+            <div class="rider-panel rider-results-panel" id="rider-results-panel">
+              <div class="rider-toolbar">
+                <button class="rider-filter all active" onclick="riderFilter('all')">TODOS</button>
+                <button class="rider-filter exact" onclick="riderFilter('EXACTO')">✅ EXACTO</button>
+                <button class="rider-filter partial" onclick="riderFilter('PARCIAL')">🟡 PARCIAL</button>
+                <button class="rider-filter missing" onclick="riderFilter('SIN_MATCH')">❌ FALTANTES</button>
+                <div style="flex:1"></div>
+                <span style="font-size:11px;color:var(--text2)" id="rider-results-count"></span>
+              </div>
+              <div class="rider-table-wrap">
+                <table class="rider-table">
+                  <thead>
+                    <tr>
+                      <th>Serie ID</th>
+                      <th>Descripción Inventario</th>
+                      <th>Marca / Modelo</th>
+                      <th>Qty</th>
+                      <th>$/Día</th>
+                      <th>Sección</th>
+                      <th>Match</th>
+                      <th>Razón</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rider-results-body"></tbody>
+                </table>
+              </div>
+              <div class="rider-missing-section" id="rider-missing-section">
+                <div class="rider-missing-title">📦 Equipos a conseguir externamente</div>
+                <div class="rider-missing-list" id="rider-missing-list"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3637,7 +3845,7 @@ function showView(v) {
     if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf("'" + v + "'") > -1) btn.classList.add('active');
   });
   currentView = v;
-  const titles = { dashboard:'Dashboard', inventario:'Inventario', disponibilidad:'Disponibilidad', clientes:'Clientes', cotizaciones:'Cotizaciones', movimientos:'Check-in / Check-out', reportes:'Reportes', logistica:'Logística de Viajes', alertas:'Alertas', config:'Configuración', egresos:'Egresos' };
+  const titles = { dashboard:'Dashboard', inventario:'Inventario', disponibilidad:'Disponibilidad', clientes:'Clientes', cotizaciones:'Cotizaciones', movimientos:'Check-in / Check-out', reportes:'Reportes', logistica:'Logística de Viajes', alertas:'Alertas', config:'Configuración', egresos:'Egresos', rider:'Rider Analyzer' };
   document.getElementById('topbar-title').textContent = titles[v] || v;
   document.getElementById('topbar-bc').textContent = 'BacklineOS / ' + (titles[v] || v);
   // Sync bottom nav
@@ -6204,6 +6412,7 @@ function render() {
   if (currentView === 'egresos') { renderEgresos(); renderMobileEgresos(); }
   if (currentView === 'alertas') renderAlertas();
   if (currentView === 'config') loadConfig();
+  if (currentView === 'rider') riderInitView();
   // Always update alert badge
   var _a = calcAlertas(); updateAlertaBadge(_a.length); updateDashboardAlerts(_a);
   applyRoles();
@@ -11789,6 +11998,467 @@ function generarBalancePDF() {
   closeModal('modal-balance');
   toast('✅ Balance generado: '+nombreArch+'.pdf', 'var(--green)');
 }
+
+// ══════════════════════════════════════════════════════════════════
+//  RIDER ANALYZER — Integrado en BacklineOS
+//  Usa DB.inventario del sistema. Llama API de Claude directamente.
+// ══════════════════════════════════════════════════════════════════
+var RIDER = {
+  fileB64: null,
+  fileName: '',
+  invSource: 'live',      // 'live' | 'csv'
+  csvInventory: null,
+  results: null,          // parsed JSON from Claude
+  currentFilter: 'all'
+};
+
+// ── Init: cuenta inventario al entrar a la vista ──
+function riderInitView() {
+  var n = (DB.inventario || []).length;
+  var el = document.getElementById('rider-inv-count');
+  if (el) el.textContent = n > 0 ? n + ' equipos cargados del sistema' : 'Sin inventario. Usa modo CSV.';
+  riderCheckReady();
+}
+
+// ── Manejo del archivo del rider ──
+function riderHandleFile(input) {
+  var file = input.files[0];
+  if (!file) return;
+  RIDER.fileName = file.name;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    RIDER.fileB64 = e.target.result.split(',')[1];
+    document.getElementById('rider-upload-icon').textContent = '✅';
+    document.getElementById('rider-upload-label').textContent = file.name;
+    document.getElementById('rider-upload-zone').classList.add('has-file');
+    // Autocompletar cliente desde nombre de archivo
+    var clientInput = document.getElementById('rider-client');
+    if (clientInput && !clientInput.value) {
+      clientInput.value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+    }
+    riderCheckReady();
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Manejo del CSV de inventario externo ──
+function riderHandleCSV(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      RIDER.csvInventory = riderParseCSV(e.target.result);
+      toast('✅ CSV cargado — ' + RIDER.csvInventory.length + ' equipos', 'var(--green)');
+      riderCheckReady();
+    } catch(err) {
+      riderShowError('Error leyendo CSV: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function riderParseCSV(text) {
+  var lines = text.trim().split('\n');
+  var headers = lines[0].split(',').map(function(h){ return h.replace(/"/g,'').trim(); });
+  return lines.slice(1).map(function(line) {
+    var cols = [], cur = '', inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    cols.push(cur.trim());
+    var obj = {};
+    headers.forEach(function(h, idx) { obj[h] = (cols[idx]||'').replace(/^"|"$/g,''); });
+    return obj;
+  });
+}
+
+// ── Switch inventario live/csv ──
+function riderSetTab(tab) {
+  RIDER.invSource = tab;
+  document.getElementById('rider-tab-live').classList.toggle('active', tab === 'live');
+  document.getElementById('rider-tab-csv').classList.toggle('active', tab === 'csv');
+  document.getElementById('rider-live-panel').style.display = tab === 'live' ? 'block' : 'none';
+  document.getElementById('rider-csv-panel').style.display = tab === 'csv' ? 'block' : 'none';
+  riderCheckReady();
+}
+
+function riderCheckReady() {
+  var hasRider = !!RIDER.fileB64;
+  var hasInv = RIDER.invSource === 'live'
+    ? (DB.inventario || []).length > 0
+    : !!RIDER.csvInventory;
+  var btn = document.getElementById('rider-btn-analyze');
+  if (btn) btn.disabled = !(hasRider && hasInv);
+}
+
+// ── Helpers de progreso ──
+function riderSetStep(n, pct) {
+  for (var i = 1; i <= 5; i++) {
+    var el = document.getElementById('rs' + i);
+    if (!el) continue;
+    el.className = 'rider-step' + (i < n ? ' done' : i === n ? ' active' : '');
+    el.querySelector('.rider-step-dot').textContent = i < n ? '✓' : String(i);
+  }
+  document.getElementById('rider-progress-fill').style.width = pct + '%';
+  document.getElementById('rider-progress-pct').textContent = pct + '%';
+}
+function riderSetProgress(label, pct) {
+  document.getElementById('rider-progress-label').textContent = label;
+  document.getElementById('rider-progress-fill').style.width = pct + '%';
+  document.getElementById('rider-progress-pct').textContent = pct + '%';
+}
+function riderShowError(msg) {
+  var box = document.getElementById('rider-error-box');
+  box.textContent = '⚠ ' + msg;
+  box.classList.add('visible');
+}
+function riderHideError() {
+  document.getElementById('rider-error-box').classList.remove('visible');
+}
+function riderSleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+
+// ── Convierte DB.inventario a CSV para el prompt ──
+function riderInvToCSV(inv) {
+  if (!inv || inv.length === 0) return 'ID,Nombre,Categoria,Marca,Modelo,Serie,Cantidad,Estado,Precio dia,Notas\n(vacío)';
+  var headers = ['ID','Nombre','Categoria','Marca','Modelo','Serie','Cantidad','Estado','Precio dia','Notas'];
+  var rows = inv.map(function(e) {
+    return [
+      e.id||'', e.nombre||'', e.cat||e.categoria||'', e.marca||'', e.modelo||'',
+      e.serie||'', e.cantidad||1, e.estado||'Disponible', e.precio||e.precioDia||0, e.notas||''
+    ].map(function(v){ return '"' + String(v).replace(/"/g,'""') + '"'; }).join(',');
+  });
+  return headers.join(',') + '\n' + rows.join('\n');
+}
+
+// ── Construye el prompt para Claude ──
+function riderBuildPrompt(client, event, invCSV) {
+  return 'Eres un especialista en backline para EKO Backline.\n' +
+    'Cliente: ' + client + '\nEvento: ' + event + '\n\n' +
+    'INVENTARIO DISPONIBLE (CSV):\n```\n' + invCSV.substring(0, 18000) + '\n```\n\n' +
+    'TAREA: Analiza el rider técnico adjunto contra el inventario.\n' +
+    'Extrae SOLO items de BACKLINE (baterías, platillos, percusión, guitarras, bajos, amplificadores, gabinetes, teclados, hardware, cables, stands, wireless para instrumentos).\n' +
+    'IGNORA: audio/PA/FOH/monitores/micrófonos, iluminación, video, catering, transporte.\n' +
+    'Si el rider dice "We supply all X" — marca esos items como N/A.\n\n' +
+    'NIVELES DE MATCH:\n' +
+    '- EXACTO: Serie ID coincide, O marca+modelo+tipo idénticos\n' +
+    '- PARCIAL: Mismo tipo, marca/modelo diferente pero equivalente\n' +
+    '- SIN_MATCH: Sin equivalente en inventario\n\n' +
+    'RESPONDE SOLO con este JSON (sin markdown ni texto extra):\n' +
+    '{"resumen":{"total":0,"exacto":0,"parcial":0,"sin_match":0,"cliente":"' + client + '","evento":"' + event + '"},' +
+    '"items":[{"seccion":"sección del rider","descripcion_rider":"texto original","cantidad":1,"match":"EXACTO|PARCIAL|SIN_MATCH","razon":"breve","serie_id":"dr004 o vacío","nombre_inv":"nombre en inventario o vacío","marca_inv":"","modelo_inv":"","precio_dia":"2500","equipoId":"id numérico del inventario o vacío","categoria":""}],' +
+    '"faltantes":[{"descripcion":"item","cantidad":1,"seccion":"sección","sugerencia":""}]}';
+}
+
+// ── Llama la API de Claude ──
+async function riderCallClaude(prompt, pdfB64, fileName) {
+  var isPDF = fileName.toLowerCase().endsWith('.pdf');
+  var messages = [{
+    role: 'user',
+    content: [
+      isPDF
+        ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfB64 } }
+        : { type: 'text', text: 'RIDER (archivo: ' + fileName + ')\n[Archivo no PDF — analiza con el inventario provisto]' },
+      { type: 'text', text: prompt }
+    ]
+  }];
+
+  var response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      messages: messages
+    })
+  });
+
+  if (!response.ok) {
+    var err = await response.json().catch(function(){ return {}; });
+    throw new Error('API ' + response.status + ': ' + (err.error && err.error.message ? err.error.message : response.statusText));
+  }
+
+  var data = await response.json();
+  return (data.content || []).map(function(b){ return b.text || ''; }).join('');
+}
+
+function riderParseResponse(raw) {
+  try {
+    var clean = raw.replace(/```json|```/g, '').trim();
+    var start = clean.indexOf('{');
+    var end = clean.lastIndexOf('}');
+    return JSON.parse(clean.substring(start, end + 1));
+  } catch(e) {
+    throw new Error('No se pudo parsear la respuesta. Intenta nuevamente.');
+  }
+}
+
+// ── ANÁLISIS PRINCIPAL ──
+async function riderRunAnalysis() {
+  riderHideError();
+  document.getElementById('rider-btn-analyze').disabled = true;
+  document.getElementById('rider-progress-wrap').classList.add('visible');
+  document.getElementById('rider-empty-panel').style.display = 'none';
+  document.getElementById('rider-results-panel').classList.remove('visible');
+  document.getElementById('rider-stats').classList.remove('visible');
+
+  try {
+    riderSetStep(1, 10);
+    riderSetProgress('Leyendo rider...', 10);
+    await riderSleep(300);
+
+    riderSetStep(2, 25);
+    riderSetProgress('Preparando inventario...', 25);
+    var inv = RIDER.invSource === 'csv' ? RIDER.csvInventory : DB.inventario;
+    var invCSV = riderInvToCSV(inv);
+    await riderSleep(200);
+
+    riderSetStep(3, 40);
+    riderSetProgress('Analizando con Claude AI...', 40);
+    var client = document.getElementById('rider-client').value || 'Cliente';
+    var event  = document.getElementById('rider-event').value  || 'Evento';
+    var prompt = riderBuildPrompt(client, event, invCSV);
+    var raw = await riderCallClaude(prompt, RIDER.fileB64, RIDER.fileName);
+
+    riderSetStep(4, 85);
+    riderSetProgress('Procesando resultados...', 85);
+    await riderSleep(200);
+    var parsed = riderParseResponse(raw);
+    RIDER.results = parsed;
+
+    riderSetStep(5, 100);
+    riderSetProgress('¡Análisis completado!', 100);
+    await riderSleep(400);
+
+    riderRenderResults(parsed);
+
+  } catch(err) {
+    riderShowError(err.message || 'Error desconocido. Intenta nuevamente.');
+    document.getElementById('rider-progress-wrap').classList.remove('visible');
+    document.getElementById('rider-empty-panel').style.display = 'block';
+  } finally {
+    document.getElementById('rider-btn-analyze').disabled = false;
+  }
+}
+
+// ── Renderiza resultados ──
+function riderRenderResults(data) {
+  document.getElementById('rider-progress-wrap').classList.remove('visible');
+
+  var s = data.resumen || {};
+  document.getElementById('rst-total').textContent   = s.total   || (data.items||[]).length;
+  document.getElementById('rst-exact').textContent   = s.exacto  || 0;
+  document.getElementById('rst-partial').textContent = s.parcial || 0;
+  document.getElementById('rst-missing').textContent = s.sin_match || 0;
+  document.getElementById('rider-stats').classList.add('visible');
+
+  document.getElementById('rider-btn-excel').style.display  = 'inline-flex';
+  document.getElementById('rider-btn-import').style.display = 'inline-flex';
+
+  document.getElementById('rider-results-panel').classList.add('visible');
+  riderRenderTable(data.items || [], 'all');
+
+  var faltantes = data.faltantes || [];
+  if (faltantes.length > 0) {
+    document.getElementById('rider-missing-section').classList.add('visible');
+    document.getElementById('rider-missing-list').innerHTML = faltantes.map(function(f) {
+      return '<div class="rider-missing-item">' +
+        '<span class="rider-missing-qty">×' + (f.cantidad||1) + '</span>' +
+        '<div><div style="font-weight:600;color:var(--text)">' + rEsc(f.descripcion) + '</div>' +
+        '<div style="color:var(--text3);font-size:11px;margin-top:2px">' + rEsc(f.seccion||'') +
+        (f.sugerencia ? ' · 💡 ' + rEsc(f.sugerencia) : '') + '</div></div></div>';
+    }).join('');
+  }
+}
+
+function riderRenderTable(items, filter) {
+  RIDER.currentFilter = filter;
+  var filtered = filter === 'all' ? items : items.filter(function(r){ return r.match === filter; });
+  document.getElementById('rider-results-count').textContent = filtered.length + ' items';
+
+  // Group by section
+  var sections = {};
+  filtered.forEach(function(r) {
+    var s = r.seccion || 'General';
+    if (!sections[s]) sections[s] = [];
+    sections[s].push(r);
+  });
+
+  var html = '';
+  Object.keys(sections).forEach(function(sec) {
+    html += '<tr class="row-section"><td colspan="8">📁 ' + rEsc(sec) + '</td></tr>';
+    sections[sec].forEach(function(r) {
+      var cls = r.match === 'EXACTO' ? 'row-exact' : r.match === 'PARCIAL' ? 'row-partial' : 'row-missing';
+      var badge = r.match === 'EXACTO'
+        ? '<span class="rider-badge badge-exact">EXACTO</span>'
+        : r.match === 'PARCIAL'
+        ? '<span class="rider-badge badge-partial">PARCIAL</span>'
+        : '<span class="rider-badge badge-missing">SIN MATCH</span>';
+      var chip = r.serie_id ? '<span class="rider-serie">' + rEsc(r.serie_id) + '</span>' : '—';
+      html += '<tr class="' + cls + '">' +
+        '<td>' + chip + '</td>' +
+        '<td>' + rEsc(r.nombre_inv || r.descripcion_rider) + '</td>' +
+        '<td style="color:var(--text2)">' + rEsc((r.marca_inv||'') + ' ' + (r.modelo_inv||'')).trim() + '</td>' +
+        '<td style="font-weight:700;text-align:center">' + (r.cantidad||1) + '</td>' +
+        '<td style="color:var(--blue)">' + (r.precio_dia ? '$' + r.precio_dia : '—') + '</td>' +
+        '<td style="color:var(--text3);font-size:11px">' + rEsc(r.seccion||'') + '</td>' +
+        '<td>' + badge + '</td>' +
+        '<td style="color:var(--text3);font-size:11px">' + rEsc(r.razon||'') + '</td>' +
+        '</tr>';
+    });
+  });
+
+  if (!html) html = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">Sin resultados para este filtro</td></tr>';
+  document.getElementById('rider-results-body').innerHTML = html;
+
+  document.querySelectorAll('.rider-filter').forEach(function(b){ b.classList.remove('active'); });
+  var mapF = { all:'all', EXACTO:'exact', PARCIAL:'partial', SIN_MATCH:'missing' };
+  var activeBtn = document.querySelector('.rider-filter.' + (mapF[filter]||'all'));
+  if (activeBtn) activeBtn.classList.add('active');
+}
+
+function riderFilter(f) {
+  if (!RIDER.results || !RIDER.results.items) return;
+  riderRenderTable(RIDER.results.items, f);
+}
+
+function rEsc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Exportar Excel ──
+function riderExportExcel() {
+  if (!RIDER.results || !RIDER.results.items) return;
+  if (typeof XLSX === 'undefined') { toast('⚠ SheetJS no disponible', 'var(--red)'); return; }
+
+  var wb = XLSX.utils.book_new();
+
+  // Hoja ANALISIS
+  var analisis = [['ID Serie','Nombre Inventario','Marca','Modelo','Categoría','Cantidad','$/Día','Sección Rider','Item Solicitado','Match','Razón']];
+  RIDER.results.items.forEach(function(r) {
+    analisis.push([r.serie_id||'', r.nombre_inv||r.descripcion_rider, r.marca_inv||'', r.modelo_inv||'', r.categoria||'', r.cantidad||1, r.precio_dia||0, r.seccion||'', r.descripcion_rider, r.match, r.razon||'']);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(analisis), 'ANALISIS');
+
+  // Hoja IMPORTAR
+  var importar = [['Nombre','Marca','Modelo','Cantidad','Precio dia','Seccion']];
+  RIDER.results.items.filter(function(r){ return r.match !== 'SIN_MATCH' && r.nombre_inv; }).forEach(function(r) {
+    importar.push([r.nombre_inv, r.marca_inv||'', r.modelo_inv||'', r.cantidad||1, r.precio_dia||0, r.seccion||'']);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(importar), 'IMPORTAR');
+
+  // Hoja FALTANTES
+  if ((RIDER.results.faltantes||[]).length > 0) {
+    var falt = [['Item Solicitado','Cantidad','Sección','Sugerencia']];
+    RIDER.results.faltantes.forEach(function(f) { falt.push([f.descripcion||'', f.cantidad||1, f.seccion||'', f.sugerencia||'']); });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(falt), 'FALTANTES');
+  }
+
+  var cliente = (document.getElementById('rider-client').value || 'Rider').replace(/[^a-zA-Z0-9_\- ]/g,'');
+  XLSX.writeFile(wb, 'EKO_Rider_' + cliente + '_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('📥 Excel descargado', 'var(--green)');
+}
+
+// ── Importar a cotización nueva ──
+function riderOpenImport() {
+  if (!RIDER.results || !RIDER.results.items) return;
+  var matched = RIDER.results.items.filter(function(r){ return r.match !== 'SIN_MATCH' && r.nombre_inv; });
+  if (matched.length === 0) { toast('⚠ No hay items con match para importar', 'var(--red)'); return; }
+
+  if (!confirm('¿Crear una nueva cotización con ' + matched.length + ' items del rider?\n\nSe abrirá el formulario de cotización con los equipos cargados.')) return;
+
+  // Preparar items en formato compatible con DB
+  var client = document.getElementById('rider-client').value || '';
+  var event  = document.getElementById('rider-event').value  || '';
+
+  // Buscar o crear cliente
+  var clienteId = null;
+  if (client) {
+    var found = DB.clientes.find(function(c){ return c.nombre.toLowerCase().includes(client.toLowerCase()); });
+    if (found) clienteId = found.id;
+  }
+
+  // Construir items de cotización
+  var cotItems = matched.map(function(r) {
+    // Buscar equipo en DB por equipoId o serie
+    var eq = null;
+    if (r.equipoId) eq = DB.inventario.find(function(e){ return String(e.id) === String(r.equipoId); });
+    if (!eq && r.serie_id) eq = DB.inventario.find(function(e){ return (e.serie||'').toLowerCase() === r.serie_id.toLowerCase(); });
+
+    return {
+      equipoId: eq ? String(eq.id) : '',
+      idEquipo: r.serie_id || (eq ? (eq.serie||String(eq.id)) : ''),
+      marca: r.marca_inv || (eq ? (eq.marca||'') : ''),
+      modelo: r.modelo_inv || (eq ? (eq.modelo||'') : ''),
+      nombre: r.nombre_inv || (eq ? eq.nombre : 'Item'),
+      notas: r.razon || (eq ? (eq.notas||'') : ''),
+      configuracion: null,
+      cantidad: r.cantidad || 1,
+      precioDia: parseFloat(r.precio_dia) || (eq ? (eq.precio||eq.precioDia||0) : 0),
+      seccion: r.seccion || ''
+    };
+  });
+
+  // Crear cotización directamente en DB
+  var folio = 'BL-' + String(DB.nextFolio++).padStart(4, '0');
+  var dias = 1;
+  var subtotal = cotItems.reduce(function(s, i){ return s + i.cantidad * i.precioDia * dias; }, 0);
+  var cotData = {
+    id: Date.now(),
+    folio: folio,
+    clienteId: clienteId,
+    evento: event,
+    lugar: '',
+    fecha: new Date().toISOString().split('T')[0],
+    dias: dias,
+    items: cotItems,
+    subtotal: subtotal, extras: 0, traslado: 0, viaticos: 0,
+    descPct: 0, descuento: 0,
+    ivaPct: 16, iva: subtotal * 0.16,
+    anticipo: 0,
+    total: subtotal * 1.16,
+    notas: 'Generada desde Rider Analyzer · ' + (RIDER.fileName || ''),
+    riderNotas: '',
+    logistica: null, pagos: [], estatusPago: 'Sin pago',
+    estado: 'Pendiente',
+    creado: new Date().toISOString()
+  };
+
+  DB.cotizaciones.push(cotData);
+  saveDB();
+
+  toast('✅ Cotización ' + folio + ' creada con ' + cotItems.length + ' equipos', 'var(--green)');
+
+  // Navegar a cotizaciones
+  setTimeout(function(){ showView('cotizaciones'); }, 600);
+}
+
+// ── Drag & drop en la upload zone ──
+(function() {
+  function initRiderDnD() {
+    var zone = document.getElementById('rider-upload-zone');
+    if (!zone) return;
+    zone.addEventListener('dragover', function(e){ e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', function(){ zone.classList.remove('drag-over'); });
+    zone.addEventListener('drop', function(e) {
+      e.preventDefault(); zone.classList.remove('drag-over');
+      var file = e.dataTransfer.files[0];
+      if (file) {
+        var input = document.getElementById('rider-file-input');
+        var dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+        riderHandleFile(input);
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initRiderDnD);
+  } else {
+    initRiderDnD();
+  }
+})();
 </script>
 
 <!-- ====== SCANNER MODAL ====== -->
