@@ -1441,10 +1441,9 @@
       document.getElementById('app').style.display = 'flex';
       // Wire rider file input
       setTimeout(function(){
-        var rfi = document.getElementById('rider-file-input');
+        var rfi = document.getElementById('rider-file-real');
         if (rfi && !rfi._wired) {
           rfi._wired = true;
-          rfi.addEventListener('change', function(){ riderOnFileChange(rfi); });
         }
       }, 1000);
       // Update user info in sidebar
@@ -1559,26 +1558,15 @@ var _riderAnalysis = []; // [{riderItem, status, matchedEq, selectedEqId}]
 
 function riderOnFileChange(inp) {
   var status = document.getElementById('rider-status');
-  status.textContent = 'Verificando archivo...';
+  status.style.display = 'block';
   var files = inp.files;
-  if (!files || files.length === 0) {
-    status.textContent = 'No se detectó archivo. Intenta de nuevo.';
-    return;
-  }
+  if (!files || files.length === 0) return;
   var file = files[0];
-  status.textContent = 'Archivo detectado: ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
-  setTimeout(function() {
-    processRiderFile(file);
-  }, 100);
+  status.innerHTML = '⏳ Leyendo: <strong>' + file.name + '</strong> (' + Math.round(file.size/1024) + ' KB)';
+  setTimeout(function() { processRiderFile(file); }, 50);
 }
 
-function riderOpenFile() {
-  var inp = document.getElementById('rider-file-input');
-  inp.onchange = function() {
-    if (inp.files && inp.files[0]) { processRiderFile(inp.files[0]); inp.value = ''; }
-  };
-  inp.click();
-}
+function riderOpenFile() {}  // no longer needed — using label
 function initRiderDropzone() {
   var k = localStorage.getItem('eko_claude_key') || '';
   var f = document.getElementById('rider-api-key');
@@ -1590,7 +1578,7 @@ function handleRiderFileSelect(e) {}
 function processRiderFile(file) {
   var status = document.getElementById('rider-status');
   status.style.display = 'block';
-  status.innerHTML = '⏳ Leyendo PDF: <strong>' + file.name + '</strong>';
+  status.innerHTML = '🤖 Analizando con IA… esto puede tardar 10-30 segundos.';
   document.getElementById('rider-analysis-panel').style.display = 'none';
 
   if (!DB.inventario || !DB.inventario.length) {
@@ -2729,34 +2717,67 @@ function createCotFromRider() {
 
       <!-- ====== RIDER IMPORT ====== -->
       <div class="view" id="view-rider-import">
-        <div class="panel" style="max-width:700px;margin:0 auto">
+        <div class="panel" style="max-width:640px;margin:0 auto">
           <div class="panel-header">
             <div class="panel-title">🎸 Importar Rider de Artista</div>
           </div>
-          <div class="panel-body" style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:32px 24px">
+          <div class="panel-body" style="display:flex;flex-direction:column;gap:20px;padding:28px 24px">
+
             <!-- API Key -->
-            <div style="width:100%;max-width:480px">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">🔑 API Key de Anthropic</label>
+            <div>
+              <label style="display:block;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">🔑 API Key de Anthropic</label>
               <div style="display:flex;gap:8px">
                 <input type="password" id="rider-api-key" placeholder="sk-ant-api03-..."
                   style="flex:1;padding:10px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text1);font-family:var(--font-mono);font-size:12px;outline:none"
                   oninput="localStorage.setItem('eko_claude_key',this.value)">
-                <button class="btn btn-secondary btn-sm" onclick="var f=document.getElementById('rider-api-key');f.type=f.type==='password'?'text':'password'">👁</button>
+                <button class="btn btn-secondary btn-sm"
+                  onclick="var f=document.getElementById('rider-api-key');f.type=f.type==='password'?'text':'password'">👁</button>
               </div>
-              <div style="font-size:11px;color:var(--text3);margin-top:4px">console.anthropic.com → API Keys. Se guarda en tu navegador.</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">
+                Obtén tu key en console.anthropic.com → API Keys. Se guarda localmente.
+              </div>
             </div>
-            <div style="font-size:48px">📄</div>
-            <div style="text-align:center">
-              <div style="font-size:15px;font-weight:600;color:var(--text1);margin-bottom:6px">Selecciona el PDF del rider</div>
-              <div style="font-size:12px;color:var(--text3)">El archivo se procesará con IA y se cruzará contra tu inventario</div>
-            </div>
-            <input type="file" id="rider-file-input" accept=".pdf" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none" tabindex="-1">
-            <button class="btn btn-primary" style="font-size:14px;padding:12px 28px" onclick="riderOpenFile()">
-              📂 Seleccionar PDF
-            </button>
-            <div id="rider-status" style="display:none;width:100%;padding:14px 18px;border-radius:10px;background:var(--surface2);font-size:13px;color:var(--text2);text-align:center"></div>
+
+            <!-- Upload area -->
+            <label for="rider-file-real" style="display:block;cursor:pointer">
+              <div style="border:2px dashed var(--border);border-radius:12px;padding:40px 24px;text-align:center;background:var(--surface2);transition:border-color .2s"
+                onmouseover="this.style.borderColor='var(--accent)'"
+                onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-size:48px;margin-bottom:12px">📄</div>
+                <div style="font-size:15px;font-weight:600;color:var(--text1);margin-bottom:6px">
+                  Haz clic aquí para seleccionar el PDF del rider
+                </div>
+                <div style="font-size:12px;color:var(--text3)">
+                  El archivo se procesará con IA y se cruzará contra tu inventario
+                </div>
+              </div>
+            </label>
+            <input type="file" id="rider-file-real" accept=".pdf"
+              style="display:none"
+              onchange="if(this.files&&this.files[0]){riderOnFileChange(this)}">
+
+            <!-- Status -->
+            <div id="rider-status" style="display:none;padding:14px 18px;border-radius:10px;background:var(--surface2);font-size:13px;color:var(--text2);text-align:center"></div>
+
           </div>
         </div>
+
+        <!-- Analysis result panel -->
+        <div id="rider-analysis-panel" style="display:none;margin-top:20px">
+          <div class="panel">
+            <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div class="panel-title">📊 Análisis del Rider</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <div id="rider-stats" style="font-size:11px;font-family:var(--font-mono);color:var(--text3)"></div>
+                <button class="btn btn-primary" onclick="createCotFromRider()">✅ Crear Cotización</button>
+              </div>
+            </div>
+            <div class="panel-body" style="padding:0">
+              <div id="rider-items-analysis"></div>
+            </div>
+          </div>
+        </div>
+      </div>
         <!-- Analysis result panel -->
         <div id="rider-analysis-panel" style="display:none;margin-top:20px">
           <div class="panel">
