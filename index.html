@@ -1554,69 +1554,6 @@
 
 // ==================== RIDER IMPORT ====================
 
-var _riderAnalysis = []; // [{riderItem, status, matchedEq, selectedEqId}]
-
-function riderFileSelected(inp) {
-  // just store reference, actual processing triggered by button
-  var status = document.getElementById('rider-status');
-  if (inp.files && inp.files[0]) {
-    status.style.display = 'block';
-    status.innerHTML = '📄 Archivo listo: <strong>' + inp.files[0].name + '</strong> (' + Math.round(inp.files[0].size/1024) + ' KB). Haz clic en Analizar.';
-  }
-}
-
-function riderAnalizarManual() {
-  try {
-    var inp    = document.getElementById('rider-file-real');
-    var status = document.getElementById('rider-status');
-    status.style.display = 'block';
-    status.innerHTML = '⏳ Iniciando...';
-
-    var apiKey = '';
-    var keyEl = document.getElementById('rider-api-key');
-    if (keyEl) apiKey = keyEl.value || '';
-    if (!apiKey) apiKey = localStorage.getItem('eko_claude_key') || '';
-    apiKey = apiKey.trim();
-
-    if (!apiKey) {
-      status.innerHTML = '❌ Ingresa tu API Key de Anthropic arriba.';
-      return;
-    }
-    if (!inp || !inp.files || !inp.files[0]) {
-      status.innerHTML = '❌ Selecciona un archivo PDF primero.';
-      return;
-    }
-    if (!DB || !DB.inventario || !DB.inventario.length) {
-      status.innerHTML = '❌ El inventario está vacío. Importa equipos primero.';
-      return;
-    }
-
-    var file = inp.files[0];
-    status.innerHTML = '⏳ Leyendo PDF: ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)...';
-
-    var reader = new FileReader();
-    reader.onerror = function(err) {
-      status.innerHTML = '❌ Error al leer el archivo: ' + (err.message || 'desconocido');
-    };
-    reader.onload = function(e) {
-      try {
-        var result = e.target.result || '';
-        var parts  = result.split(',');
-        var b64    = parts.length > 1 ? parts[1] : '';
-        if (!b64) { status.innerHTML = '❌ No se pudo convertir el PDF a base64.'; return; }
-        status.innerHTML = '🤖 Analizando con IA… esto puede tardar 20-40 segundos.';
-        analyzeRiderWithClaude(b64, file.name, apiKey);
-      } catch(innerErr) {
-        status.innerHTML = '❌ Error interno: ' + innerErr.message;
-      }
-    };
-    reader.readAsDataURL(file);
-
-  } catch(outerErr) {
-    var st = document.getElementById('rider-status');
-    if (st) st.innerHTML = '❌ Error: ' + outerErr.message;
-  }
-}
 
 
 function riderOnFileChange(inp) {
@@ -12083,6 +12020,72 @@ function generarBalancePDF() {
   btn.disabled = false; btn.textContent = '📄 Generar PDF de Balance';
   closeModal('modal-balance');
   toast('✅ Balance generado: '+nombreArch+'.pdf', 'var(--green)');
+}
+
+
+// ── Rider Analyzer functions (global scope) ─────────────────
+var _riderAnalysis = []; // [{riderItem, status, matchedEq, selectedEqId}]
+
+function riderFileSelected(inp) {
+  // just store reference, actual processing triggered by button
+  var status = document.getElementById('rider-status');
+  if (inp.files && inp.files[0]) {
+    status.style.display = 'block';
+    status.innerHTML = '📄 Archivo listo: <strong>' + inp.files[0].name + '</strong> (' + Math.round(inp.files[0].size/1024) + ' KB). Haz clic en Analizar.';
+  }
+}
+
+function riderAnalizarManual() {
+  try {
+    var inp    = document.getElementById('rider-file-real');
+    var status = document.getElementById('rider-status');
+    status.style.display = 'block';
+    status.innerHTML = '⏳ Iniciando...';
+
+    var apiKey = '';
+    var keyEl = document.getElementById('rider-api-key');
+    if (keyEl) apiKey = keyEl.value || '';
+    if (!apiKey) apiKey = localStorage.getItem('eko_claude_key') || '';
+    apiKey = apiKey.trim();
+
+    if (!apiKey) {
+      status.innerHTML = '❌ Ingresa tu API Key de Anthropic arriba.';
+      return;
+    }
+    if (!inp || !inp.files || !inp.files[0]) {
+      status.innerHTML = '❌ Selecciona un archivo PDF primero.';
+      return;
+    }
+    if (!DB || !DB.inventario || !DB.inventario.length) {
+      status.innerHTML = '❌ El inventario está vacío. Importa equipos primero.';
+      return;
+    }
+
+    var file = inp.files[0];
+    status.innerHTML = '⏳ Leyendo PDF: ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)...';
+
+    var reader = new FileReader();
+    reader.onerror = function(err) {
+      status.innerHTML = '❌ Error al leer el archivo: ' + (err.message || 'desconocido');
+    };
+    reader.onload = function(e) {
+      try {
+        var result = e.target.result || '';
+        var parts  = result.split(',');
+        var b64    = parts.length > 1 ? parts[1] : '';
+        if (!b64) { status.innerHTML = '❌ No se pudo convertir el PDF a base64.'; return; }
+        status.innerHTML = '🤖 Analizando con IA… esto puede tardar 20-40 segundos.';
+        analyzeRiderWithClaude(b64, file.name, apiKey);
+      } catch(innerErr) {
+        status.innerHTML = '❌ Error interno: ' + innerErr.message;
+      }
+    };
+    reader.readAsDataURL(file);
+
+  } catch(outerErr) {
+    var st = document.getElementById('rider-status');
+    if (st) st.innerHTML = '❌ Error: ' + outerErr.message;
+  }
 }
 </script>
 
