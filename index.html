@@ -11285,42 +11285,31 @@ function renderRiderAnalysis(result, filename) {
       var badgeClass = item.matchScore === 'exact' ? 'rider-match-ok' : item.matchScore === 'partial' ? 'rider-match-warn' : 'rider-match-none';
       var badgeText  = item.matchScore === 'exact' ? '✅ MATCH' : item.matchScore === 'partial' ? '⚠ PARCIAL' : '❌ SIN MATCH';
 
-      // Build select with all inventory options, grouped
-      var selHtml = '<select style="width:100%;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text1);font-size:12px" onchange="onRiderItemSelect(this,' + entryIdx + ')">';
-      selHtml += '<option value="">— Sin asignar —</option>';
-
-      // Add top matches first
-      var topIds = [item.matchId].concat(item.alternatives||[]).filter(Boolean);
-      if (topIds.length) {
-        selHtml += '<optgroup label="── Sugeridos ──">';
-        topIds.forEach(function(id) {
-          var eq = DB.inventario.find(function(e){ return String(e.id) === String(id); });
-          if (!eq) return;
-          var sel = String(id) === String(item.matchId) ? ' selected' : '';
-          selHtml += '<option value="' + eq.id + '"' + sel + '>' + eq.nombre + ' — ' + (eq.marca||'') + ' ' + (eq.modelo||'') + '</option>';
-        });
-        selHtml += '</optgroup>';
-      }
-
-      // All inventory grouped by category
-      var cats = ['Drum Kits','Cymbals','Percussion','Amplifiers','Cabinets','Instruments','Keyboards','Accessories','Specials'];
-      cats.forEach(function(cat) {
-        var items = DB.inventario.filter(function(e){ return e.cat === cat; });
-        if (!items.length) return;
-        selHtml += '<optgroup label="── ' + cat + ' ──">';
-        items.forEach(function(eq) {
-          var alreadyShown = topIds.some(function(id){ return String(id) === String(eq.id); });
-          if (alreadyShown) return;
-          selHtml += '<option value="' + eq.id + '">' + eq.nombre + ' — ' + (eq.marca||'') + ' ' + (eq.modelo||'') + '</option>';
-        });
-        selHtml += '</optgroup>';
-      });
-      selHtml += '</select>';
+      // Build search box + dropdown for match selection
+      var matchedEqName = matchedEq ? (matchedEq.nombre + ' — ' + (matchedEq.marca||'') + ' ' + (matchedEq.modelo||'')).trim() : '';
 
       center.innerHTML =
-        '<div style="margin-bottom:6px"><span class="rider-match-badge ' + badgeClass + '">' + badgeText + '</span>' +
-        (item.matchReason ? ' <span style="font-size:10px;color:var(--text3)">' + item.matchReason + '</span>' : '') + '</div>' +
-        selHtml;
+        '<div style="margin-bottom:6px">' +
+          '<span class="rider-match-badge ' + badgeClass + '">' + badgeText + '</span>' +
+          (item.matchReason ? ' <span style="font-size:10px;color:var(--text3)">' + item.matchReason + '</span>' : '') +
+        '</div>' +
+        // Search input
+        '<div style="position:relative">' +
+          '<input type="text" ' +
+            'id="rsearch-' + entryIdx + '" ' +
+            'placeholder="🔍 Buscar en inventario..." ' +
+            'value="' + matchedEqName + '" ' +
+            'autocomplete="off" ' +
+            'style="width:100%;padding:7px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px 6px 0 0;color:var(--text1);font-size:12px;outline:none;box-sizing:border-box" ' +
+            'oninput="riderSearchInv(this,' + entryIdx + ')" ' +
+            'onfocus="riderSearchInv(this,' + entryIdx + ')" ' +
+            'onblur="setTimeout(function(){var d=document.getElementById(&quot;rdrop-' + entryIdx + '&quot;);if(d)d.style.display=&quot;none&quot;;},200)" ' +
+          '>' +
+          // Hidden value field
+          '<input type="hidden" id="rval-' + entryIdx + '" value="' + (item.matchId||'') + '">' +
+          // Dropdown results
+          '<div id="rdrop-' + entryIdx + '" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;background:var(--surface2);border:1px solid var(--accent);border-top:none;border-radius:0 0 6px 6px;max-height:200px;overflow-y:auto"></div>' +
+        '</div>';
 
       // Right: qty input
       var right = document.createElement('div');
@@ -11352,6 +11341,67 @@ function onRiderItemSelect(sel, idx) {
   _riderAnalysis[idx].selectedEqId = sel.value || null;
 }
 
+function riderSearchInv(input, entryIdx) {
+  var query  = input.value.trim().toLowerCase();
+  var drop   = document.getElementById('rdrop-' + entryIdx);
+  var valInp = document.getElementById('rval-' + entryIdx);
+  if (!drop) return;
+
+  // Build filtered list
+  var results = DB.inventario.filter(function(e) {
+    if (!query) return true;
+    var haystack = (e.nombre + ' ' + (e.marca||'') + ' ' + (e.modelo||'') + ' ' + (e.serie||'') + ' ' + (e.cat||'')).toLowerCase();
+    return haystack.indexOf(query) !== -1;
+  }).slice(0, 30);
+
+  if (!results.length) {
+    drop.innerHTML = '<div style="padding:8px 12px;color:var(--text3);font-size:12px">Sin resultados</div>';
+    drop.style.display = 'block';
+    return;
+  }
+
+  // Group by category
+  var bycat = {};
+  results.forEach(function(e) {
+    if (!bycat[e.cat]) bycat[e.cat] = [];
+    bycat[e.cat].push(e);
+  });
+
+  var html = '';
+  Object.keys(bycat).forEach(function(cat) {
+    html += '<div style="padding:4px 10px;font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;background:var(--surface);text-transform:uppercase">' + cat + '</div>';
+    bycat[cat].forEach(function(eq) {
+      var disp = parseInt(eq.cantidad)||1;
+      var label = eq.nombre + (eq.marca ? ' — ' + eq.marca : '') + (eq.modelo ? ' ' + eq.modelo : '');
+      html += '<div ' +
+        'data-id="' + eq.id + '" ' +
+        'data-label="' + label.replace(/"/g,'&quot;') + '" ' +
+        'onmousedown="riderSelectItem(this,' + entryIdx + ')" ' +
+        'style="padding:7px 12px;font-size:12px;color:var(--text1);cursor:pointer;border-bottom:1px solid var(--border)" ' +
+        'onmouseover="this.style.background=var(--surface2)" ' +
+        'onmouseout="this.style.background=none">' +
+        label +
+        '<span style="float:right;font-size:10px;color:var(--text3);font-family:var(--font-mono)">' + (eq.serie||eq.id) + '</span>' +
+      '</div>';
+    });
+  });
+
+  drop.innerHTML = html;
+  drop.style.display = 'block';
+}
+
+function riderSelectItem(el, entryIdx) {
+  var id    = el.dataset.id;
+  var label = el.dataset.label;
+  var inp   = document.getElementById('rsearch-' + entryIdx);
+  var val   = document.getElementById('rval-' + entryIdx);
+  var drop  = document.getElementById('rdrop-' + entryIdx);
+  if (inp) inp.value = label;
+  if (val) val.value = id;
+  if (drop) drop.style.display = 'none';
+  if (_riderAnalysis[entryIdx]) _riderAnalysis[entryIdx].selectedEqId = id;
+}
+
 function onRiderQtyChange(input, idx) {
   _riderAnalysis[idx].riderItem.qty = parseInt(input.value) || 1;
 }
@@ -11363,6 +11413,9 @@ function createCotFromRider() {
   // Build items array
   var items = [];
   _riderAnalysis.forEach(function(a) {
+    // Also check hidden value field (from search box)
+    var valEl = document.getElementById('rval-' + _riderAnalysis.indexOf(a));
+    if (valEl && valEl.value) a.selectedEqId = valEl.value;
     if (!a.selectedEqId) return;
     var eq = DB.inventario.find(function(e){ return String(e.id) === String(a.selectedEqId); });
     if (!eq) return;
