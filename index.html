@@ -2411,7 +2411,7 @@
       <div class="view" id="view-rider-import">
         <div class="panel" style="max-width:640px;margin:0 auto">
           <div class="panel-header">
-            <div class="panel-title">🎸 Importar Rider de Artista</div>
+            <div class="panel-title">🎸 Agente Rider EKO</div>
           </div>
           <div class="panel-body" style="display:flex;flex-direction:column;gap:20px;padding:28px 24px">
 
@@ -2428,19 +2428,33 @@
               <div style="font-size:11px;color:var(--text3);margin-top:4px">Obtén tu key en console.anthropic.com → API Keys.</div>
             </div>
 
-            <!-- File input — visible y estilizado directamente -->
+            <!-- Artista y Evento -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div>
+                <label style="display:block;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">🎤 Artista</label>
+                <input type="text" id="rider-artist" placeholder="Nombre del artista"
+                  style="width:100%;padding:10px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text1);font-size:13px;outline:none;box-sizing:border-box">
+              </div>
+              <div>
+                <label style="display:block;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">📍 Evento</label>
+                <input type="text" id="rider-event" placeholder="Venue / Festival"
+                  style="width:100%;padding:10px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text1);font-size:13px;outline:none;box-sizing:border-box">
+              </div>
+            </div>
+
+            <!-- File input -->
             <div>
               <label style="display:block;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">📄 Rider PDF</label>
-              <input type="file" id="rider-file-real" accept=".pdf"
+              <input type="file" id="rider-file-real" accept=".pdf,.jpg,.jpeg,.png"
                 style="display:block;width:100%;padding:12px 16px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text1);font-size:13px;cursor:pointer"
                 onchange="riderFileSelected(this)">
-              <div style="font-size:11px;color:var(--text3);margin-top:4px">Selecciona el PDF del rider técnico del artista.</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">PDF, JPG o PNG del rider técnico del artista.</div>
             </div>
 
             <!-- Botón analizar -->
             <button class="btn btn-primary" style="padding:14px;font-size:14px;font-weight:700"
               onclick="riderAnalizarManual()">
-              🤖 Analizar Rider con IA
+              🤖 Analizar Rider con Agente IA
             </button>
 
             <!-- Status -->
@@ -2449,7 +2463,7 @@
           </div>
         </div>
 
-        <!-- Analysis result panel -->
+        <!-- Panel principal de análisis -->
         <div id="rider-analysis-panel" style="display:none;margin-top:20px">
           <div class="panel">
             <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -2464,40 +2478,33 @@
             </div>
           </div>
         </div>
-      </div>
 
-        <!-- Analysis result panel -->
-        <div id="rider-analysis-panel" style="display:none;margin-top:20px">
-          <div class="panel">
-            <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-              <div class="panel-title">📊 Análisis del Rider</div>
-              <div style="display:flex;gap:8px;align-items:center">
-                <div id="rider-stats" style="font-size:11px;font-family:var(--font-mono);color:var(--text3)"></div>
-                <button class="btn btn-primary" onclick="createCotFromRider()">✅ Crear Cotización</button>
-              </div>
+        <!-- Panel faltantes -->
+        <div id="rider-missing-panel" style="display:none;margin-top:16px">
+          <div class="panel" style="border-color:rgba(220,50,50,0.3)">
+            <div class="panel-header" style="background:rgba(220,50,50,0.08)">
+              <div class="panel-title">🔴 Lista Watts Audio / Faltantes</div>
             </div>
             <div class="panel-body" style="padding:0">
-              <div id="rider-items-analysis"></div>
+              <div id="rider-missing-list"></div>
             </div>
           </div>
         </div>
-      </div>
-        <!-- Analysis result panel -->
-        <div id="rider-analysis-panel" style="display:none;margin-top:20px">
-          <div class="panel">
-            <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-              <div class="panel-title">📊 Análisis del Rider</div>
-              <div style="display:flex;gap:8px;align-items:center">
-                <div id="rider-stats" style="font-size:11px;font-family:var(--font-mono);color:var(--text3)"></div>
-                <button class="btn btn-primary" onclick="createCotFromRider()">✅ Crear Cotización</button>
-              </div>
+
+        <!-- Panel contrarider -->
+        <div id="rider-contrarider-panel" style="display:none;margin-top:16px">
+          <div class="panel" style="border-color:rgba(46,111,255,0.3)">
+            <div class="panel-header" style="background:rgba(46,111,255,0.08);display:flex;justify-content:space-between;align-items:center">
+              <div class="panel-title">📝 Contrarider (English)</div>
+              <button class="btn btn-secondary btn-sm" onclick="riderCopyContrarider()">📋 Copiar</button>
             </div>
-            <div class="panel-body" style="padding:0">
-              <div id="rider-items-analysis"></div>
+            <div class="panel-body">
+              <pre id="rider-contrarider-text" style="font-family:var(--font-mono);font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.6;margin:0"></pre>
             </div>
           </div>
         </div>
-      </div>
+
+      </div><!-- /view-rider-import -->
   </main>
 </div><!-- /app -->
 
@@ -11401,40 +11408,36 @@ function riderAnalizarManual() {
     status.style.display = 'block';
     status.innerHTML = '⏳ Iniciando...';
 
+    // Ocultar paneles anteriores
+    ['rider-analysis-panel','rider-missing-panel','rider-contrarider-panel'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
     var apiKey = '';
     var keyEl = document.getElementById('rider-api-key');
     if (keyEl) apiKey = keyEl.value || '';
     if (!apiKey) apiKey = localStorage.getItem('eko_claude_key') || '';
     apiKey = apiKey.trim();
 
-    if (!apiKey) {
-      status.innerHTML = '❌ Ingresa tu API Key de Anthropic arriba.';
-      return;
-    }
-    if (!inp || !inp.files || !inp.files[0]) {
-      status.innerHTML = '❌ Selecciona un archivo PDF primero.';
-      return;
-    }
-    if (!DB || !DB.inventario || !DB.inventario.length) {
-      status.innerHTML = '❌ El inventario está vacío. Importa equipos primero.';
-      return;
-    }
+    var artist = (document.getElementById('rider-artist')||{}).value || '';
+    var event  = (document.getElementById('rider-event')||{}).value || '';
+
+    if (!apiKey) { status.innerHTML = '❌ Ingresa tu API Key de Anthropic arriba.'; return; }
+    if (!inp || !inp.files || !inp.files[0]) { status.innerHTML = '❌ Selecciona un archivo PDF o imagen primero.'; return; }
+    if (!DB || !DB.inventario || !DB.inventario.length) { status.innerHTML = '❌ El inventario está vacío. Importa equipos primero.'; return; }
 
     var file = inp.files[0];
-    status.innerHTML = '⏳ Leyendo PDF: ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)...';
+    status.innerHTML = '⏳ Leyendo archivo: ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)…';
 
     var reader = new FileReader();
-    reader.onerror = function(err) {
-      status.innerHTML = '❌ Error al leer el archivo: ' + (err.message || 'desconocido');
-    };
+    reader.onerror = function(err) { status.innerHTML = '❌ Error al leer el archivo.'; };
     reader.onload = function(e) {
       try {
-        var result = e.target.result || '';
-        var parts  = result.split(',');
-        var b64    = parts.length > 1 ? parts[1] : '';
-        if (!b64) { status.innerHTML = '❌ No se pudo convertir el PDF a base64.'; return; }
-        status.innerHTML = '🤖 Analizando con IA… esto puede tardar 20-40 segundos.';
-        analyzeRiderWithClaude(b64, file.name, apiKey);
+        var parts = (e.target.result || '').split(',');
+        var b64   = parts.length > 1 ? parts[1] : '';
+        if (!b64) { status.innerHTML = '❌ No se pudo convertir el archivo a base64.'; return; }
+        analyzeRiderWithClaude(b64, file.name, apiKey, artist, event);
       } catch(innerErr) {
         status.innerHTML = '❌ Error interno: ' + innerErr.message;
       }
@@ -11500,108 +11503,415 @@ function processRiderFile(file) {
   reader.readAsDataURL(file);
 }
 
-function analyzeRiderWithClaude(base64, filename, apiKey) {
-  var status = document.getElementById('rider-status');
+// ══════════════════════════════════════════════════════════════
+// EKO AGENTE RIDER v10 — Motor integrado en BacklineOS
+// ══════════════════════════════════════════════════════════════
 
-  // Build inventory summary for context
-  var invSummary = 'Serie|Nombre|Marca|Modelo|Categoría|Precio/día|Notas\n' +
-    DB.inventario.map(function(e) {
-      return (e.serie||String(e.id)) + '|' + e.nombre + '|' + (e.marca||'') + '|' +
-             (e.modelo||'') + '|' + (e.cat||'') + '|' + (e.precio||0) + '|' + (e.notas||'');
-    }).join('\n');
+// ── MAPA DE CATEGORÍAS ─────────────────────────────────────────
+var EKO_CATEGORIA_MAP = {
+  'keyboard':['Keyboards'],'piano':['Keyboards'],'synth':['Keyboards'],'organ':['Keyboards'],
+  'keytar':['Keyboards'],'rd-2000':['Keyboards'],'montage':['Keyboards'],'motif':['Keyboards'],'nord':['Keyboards'],
+  'guitar':['Instruments'],'bass':['Instruments'],'bajo':['Instruments'],'stingray':['Instruments'],
+  'precision':['Instruments'],'jazz bass':['Instruments'],'stratocaster':['Instruments'],
+  'telecaster':['Instruments'],'les paul':['Instruments'],
+  'amp':['Amplifiers'],'amplifier':['Amplifiers'],'combo':['Amplifiers'],
+  'cabinet':['Cabinets'],'head amp':['Amplifiers'],'bass amp':['Amplifiers'],'guitar amp':['Amplifiers'],
+  'twin reverb':['Amplifiers'],'bassman':['Amplifiers'],'svt':['Amplifiers','Cabinets'],'jcm':['Amplifiers'],'ac30':['Amplifiers'],
+  'kick drum':['Drum Kits'],'bass drum':['Drum Kits'],'bombo':['Drum Kits'],
+  'rack tom':['Drum Kits'],'floor tom':['Drum Kits'],
+  'snare drum':['Specials','Drum Kits','Accessories'],'snare':['Specials','Drum Kits','Accessories'],
+  'drum kit':['Drum Kits'],'drumkit':['Drum Kits'],
+  'drumhead':['Specials'],'drum head':['Specials'],'batter head':['Specials'],'resonant head':['Specials'],
+  'reso head':['Specials'],'parche':['Specials'],'emperor':['Specials'],'ambassador':['Specials'],
+  'coated':['Specials'],'powerstroke':['Specials'],'uv1':['Specials'],'uv2':['Specials'],'emad':['Specials'],
+  'cymbal':['Cymbals'],'hi-hat':['Cymbals'],'hi hat':['Cymbals'],'crash':['Cymbals'],
+  'ride':['Cymbals'],'china':['Cymbals'],'splash':['Cymbals'],
+  'conga':['Percussion'],'bongo':['Percussion'],'cajon':['Percussion'],'cajón':['Percussion'],
+  'timbale':['Percussion'],'shaker':['Percussion'],'windchime':['Percussion'],
+  'stand':['Accessories'],'hardware':['Accessories'],'drum hardware':['Accessories'],
+  'cable':['Accessories'],'pedal':['Accessories'],'throne':['Accessories'],
+  'bench':['Accessories'],'rug':['Accessories'],'gaffer':['Accessories'],'stool':['Accessories'],'shield':['Accessories']
+};
 
-  var systemPrompt = `You are a backline equipment specialist. You will receive a PDF of a concert rider and a list of available inventory.
+// ── SINÓNIMOS ──────────────────────────────────────────────────
+var EKO_SINONIMOS = {
+  'batter head':['drumhead','drum head'],'resonant head':['drumhead','drum head'],'reso head':['drumhead','drum head'],
+  'g2':['drumhead','uv2','emperor'],'g1':['drumhead','uv1','ambassador'],
+  'uv2':['drumhead','g2','emperor'],'emad':['drumhead','emad','kick'],
+  'powerstroke':['drumhead','powerstroke'],'emperor coated':['coated emperor','coated','emperor'],
+  'emperor':['emperor','coated'],'ambassador':['ambassador','clear'],
+  'rd-2000ex':['rd-2000','rd2000','stage piano'],'rd2000':['rd-2000','stage piano'],
+  'montage m8x':['montage m8','montage'],'motif xf8':['motif xf8','motif'],'motif xf7':['motif xf7','motif'],
+  'stingray':['precision bass','jazz bass','electric bass'],'music man':['electric bass','precision bass'],
+  'precision bass':['precision bass','electric bass'],'jazz bass':['jazz bass','electric bass'],
+  'p-bass':['precision bass','electric bass'],'j-bass':['jazz bass','electric bass'],
+  'electroacoustic':['electroacoustic','electroacústica'],'acoustic guitar':['electroacoustic','electroacústica'],
+  'martin':['electroacoustic','martin'],'taylor':['electroacoustic','taylor'],
+  'twin reverb':['twin reverb'],'bassman':['bassman'],
+  'mark bass':['gallien','eden','swr','hartke'],'aguilar':['gallien','eden','swr'],
+  'snare drum':['snare drum'],'bass drum':['kick drum'],'kick':['kick drum'],
+  'floor tom':['floor tom'],'rack tom':['rack tom'],'tom':['rack tom','floor tom']
+};
 
-Your job:
-1. Extract EVERY equipment item from the rider, with quantity and which musician/section it belongs to.
-2. For each item, find the best match from the inventory list.
-3. Return ONLY valid JSON — no markdown, no explanation.
+// ── REGLAS DE DECISIÓN ─────────────────────────────────────────
+var EKO_GENERIC    = ['stand','cable','pedal','rug','throne','bench','gaffer','stool','shield','lamp','tuner'];
+var EKO_INSTRUMENT = ['kick drum','snare','rack tom','floor tom','cymbal','hi-hat','guitar','bass amp','keyboard','piano','conga','bongo','cajon','windchime'];
+var EKO_VENUE_KW   = ['silla','mesa','mantel','chair','table'];
+var EKO_PROMASTER  = ['montage m8','orchestral piano','grand piano'];
+var EKO_BRANDS     = ['gretsch','dw','pearl','tama','ludwig','zildjian','sabian','meinl','yamaha','roland','fender','gibson','martin','taylor','ampeg','mark bass','aguilar','lp','remo','evans'];
 
-Inventory format: serie|nombre|marca|modelo|categoria|precio_dia|notas\n- Use the Serie value as matchId (e.g. Amp042, dr016, Misc008)
-Inventory:
-` + invSummary + `
-
-Return this JSON structure:
-{
-  "artist": "Artist name from rider",
-  "sections": [
-    {
-      "section": "Section/musician name",
-      "items": [
-        {
-          "original": "original text from rider",
-          "qty": 1,
-          "matchId": "inventory id or null",
-          "matchScore": "exact|partial|none",
-          "matchReason": "brief reason",
-          "alternatives": ["id1","id2"] 
-        }
-      ]
+// ── MOTOR DE MATCHING ──────────────────────────────────────────
+function ekoGetValidCategories(q) {
+  var cats = [];
+  Object.keys(EKO_CATEGORIA_MAP).forEach(function(kw) {
+    if (q.indexOf(kw) !== -1) {
+      EKO_CATEGORIA_MAP[kw].forEach(function(c) { if (cats.indexOf(c) === -1) cats.push(c); });
     }
-  ]
+  });
+  return cats;
 }
 
-Rules:
-- matchScore "exact": brand+model clearly match
-- matchScore "partial": category/type matches but different brand or model
-- matchScore "none": nothing suitable in inventory
-- alternatives: up to 3 inventory ids of similar items (can be empty array)
-- matchId must be a valid inventory id string or null`;
+function ekoExpandSynonyms(query) {
+  var terms = [query];
+  Object.keys(EKO_SINONIMOS).forEach(function(key) {
+    if (query.indexOf(key) !== -1) {
+      EKO_SINONIMOS[key].forEach(function(s) { if (terms.indexOf(s) === -1) terms.push(s); });
+    }
+  });
+  return terms;
+}
+
+function ekoFindBest(itemStr, marcaReq, inventory) {
+  var q = (itemStr + ' ' + (marcaReq||'')).toLowerCase().trim();
+  var validCats = ekoGetValidCategories(q);
+  var pool = validCats.length
+    ? inventory.filter(function(i) { return validCats.indexOf(i.cat||i.Categoria||'') !== -1; })
+    : inventory;
+  if (!pool.length) pool = inventory;
+
+  var marca = (marcaReq||'').toLowerCase().trim();
+  var searchTerms = ekoExpandSynonyms(q);
+  var best = null, topScore = 0;
+
+  pool.forEach(function(item) {
+    var hay = ((item.nombre||item.Nombre||'') + ' ' + (item.marca||item.Marca||'') + ' ' +
+               (item.modelo||item.Modelo||'') + ' ' + (item.serie||item.Serie||'') + ' ' +
+               (item.notas||item.Notas||'')).toLowerCase();
+    var score = 0;
+    if (marca && hay.indexOf(marca) !== -1) score += 10;
+    searchTerms.forEach(function(term) {
+      term.split(' ').filter(function(w){return w.length>2;}).forEach(function(w){ if(hay.indexOf(w)!==-1) score+=2; });
+    });
+    q.split(' ').filter(function(w){return w.length>3;}).forEach(function(w){ if(hay.indexOf(w)!==-1) score+=1; });
+    if (score > topScore) { topScore = score; best = item; }
+  });
+  return topScore >= 3 ? best : null;
+}
+
+function ekoValidateMatch(itemStr, invMatch) {
+  if (!invMatch) return false;
+  var q = itemStr.toLowerCase();
+  var cat = invMatch.cat||invMatch.Categoria||'';
+  var nombre = (invMatch.nombre||invMatch.Nombre||'').toLowerCase();
+  if (['bass guitar','electric bass','precision bass','jazz bass','stingray'].some(function(k){return q.indexOf(k)!==-1;}))
+    if (cat === 'Amplifiers') return false;
+  if (['batter head','drumhead','resonant head'].some(function(k){return q.indexOf(k)!==-1;}))
+    if (cat === 'Amplifiers') return false;
+  if (q.indexOf('hardware') !== -1 && cat === 'Drum Kits') return false;
+  if (q.indexOf('snare drum') !== -1 && nombre.indexOf('stand') !== -1) return false;
+  if (['stage piano','keyboard','synth'].some(function(k){return q.indexOf(k)!==-1;}))
+    if (nombre.indexOf('pedal') !== -1 || nombre.indexOf('expression') !== -1) return false;
+  return true;
+}
+
+function ekoDecide(itemStr, marcaReq, invMatch) {
+  var q = (itemStr + ' ' + (marcaReq||'')).toLowerCase();
+  if (!invMatch || !ekoValidateMatch(itemStr, invMatch)) {
+    if (EKO_VENUE_KW.some(function(k){return q.indexOf(k)!==-1;}))
+      return {status:'venue', action:'Coordinar con venue', proveedor:null};
+    if (EKO_PROMASTER.some(function(k){return q.indexOf(k)!==-1;}))
+      return {status:'faltante', action:'→ Promaster (especializado)', proveedor:'promaster', critical:true};
+    return {status:'faltante', action:'→ Watts Audio', proveedor:'watts'};
+  }
+  var invHay = ((invMatch.nombre||invMatch.Nombre||'') + ' ' + (invMatch.marca||invMatch.Marca||'') + ' ' + (invMatch.modelo||invMatch.Modelo||'')).toLowerCase();
+  var isInstrument = EKO_INSTRUMENT.some(function(k){return q.indexOf(k)!==-1;});
+  if (isInstrument) {
+    var reqBrand = EKO_BRANDS.find(function(b){return q.indexOf(b)!==-1;});
+    if (reqBrand && invHay.indexOf(reqBrand) !== -1)
+      return {status:'disponible', action:'—', invItem:invMatch};
+    return {status:'confirmar', action:'Confirmar con PM del artista', invItem:invMatch};
+  }
+  if (EKO_GENERIC.some(function(k){return q.indexOf(k)!==-1;}))
+    return {status:'disponible', action:'—', invItem:invMatch};
+  return {status:'sustitucion', action:'Sustitución automática', invItem:invMatch};
+}
+
+// ── FUNCIÓN PRINCIPAL ──────────────────────────────────────────
+function analyzeRiderWithClaude(base64, filename, apiKey, artist, event) {
+  var status = document.getElementById('rider-status');
+  var isImage = /\.(jpg|jpeg|png)$/i.test(filename);
+  var mediaType = isImage
+    ? (filename.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg')
+    : 'application/pdf';
+
+  var instruccion = 'Analiza el rider técnico que te envío y extrae ÚNICAMENTE los items de BACKLINE.\n\n' +
+    'IGNORAR completamente: consolas FOH/monitor, micrófonos, sistemas IEM/wireless, PA/speakers/cabinets de PA, iluminación, video/multimedia, catering, camarines, escenario/tarimas/rigging.\n\n' +
+    'INCLUIR en BACKLINE: baterías (shells, hardware), platillos, parches de batería, percusión (congas, bongos, cajón, etc.), teclados/pianos/sintetizadores, amplificadores de guitarra y bajo, guitarras, bajos, accesorios de escenario (stands de instrumento, cables, banquetas).\n\n' +
+    'FORMATO DE RESPUESTA: responde ÚNICAMENTE con un objeto JSON válido, sin texto antes ni después, sin bloques de código markdown. Esquema:\n' +
+    '{"artista":"nombre del artista","items":[{"seccion":"Drumset","item":"nombre en inglés","qty":1,"marca_req":"marca específica o cadena vacía","notas":"detalles"}]}\n\n' +
+    'Valores válidos para seccion: Drumset, Cymbals, Drumheads, Percusión, Keyboards, Bass, Guitar, Accessories, Consumibles\n\n' +
+    'NO uses comillas dobles dentro de los campos de texto.';
+
+  var contentBlock = isImage
+    ? {type:'image', source:{type:'base64', media_type:mediaType, data:base64}}
+    : {type:'document', source:{type:'base64', media_type:'application/pdf', data:base64}};
+
+  var headers = {
+    'Content-Type': 'application/json',
+    'x-api-key': apiKey.trim(),
+    'anthropic-version': '2023-06-01',
+    'anthropic-dangerous-direct-browser-access': 'true'
+  };
+  if (!isImage) headers['anthropic-beta'] = 'pdfs-2024-09-25';
+
+  status.innerHTML = '🤖 Paso 1/2 — Extrayendo items del rider con IA…';
 
   fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey.trim(),
-      'anthropic-version': '2023-06-01',
-      'anthropic-beta': 'pdfs-2024-09-25',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
+    headers: headers,
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-opus-4-5',
       max_tokens: 4000,
-      system: systemPrompt,
-      messages: [{
-        role: 'user',
-        content: [{
-          type: 'document',
-          source: { type: 'base64', media_type: 'application/pdf', data: base64 }
-        }, {
-          type: 'text',
-          text: 'Extract all equipment items from this rider and match them to the inventory. Return only JSON.'
-        }]
-      }]
+      messages: [
+        {role:'user', content: instruccion},
+        {role:'assistant', content: 'Entendido. Analizaré el rider y responderé solo con JSON válido.'},
+        {role:'user', content: [{type:'text', text:'Aquí está el rider técnico:'}, contentBlock]}
+      ]
     })
   })
   .then(function(r) {
-    if (!r.ok) { return r.json().then(function(e){ throw new Error('API ' + r.status + ': ' + JSON.stringify(e)); }); }
+    if (!r.ok) return r.json().then(function(e){ throw new Error('API ' + r.status + ': ' + JSON.stringify(e)); });
     return r.json();
   })
   .then(function(data) {
-    var status = document.getElementById('rider-status');
-    if (data.error) { status.innerHTML = '❌ Error API: ' + (data.error.message||JSON.stringify(data.error)); return; }
-    var text = (data.content||[]).map(function(b){ return b.text||''; }).join('');
-    text = text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
-    console.log('Claude response:', text.substring(0,200));
-    try {
-      var result = JSON.parse(text);
-      renderRiderAnalysis(result, filename);
-      status.innerHTML = '✅ Rider analizado: <strong>' + (result.artist||filename) + '</strong>';
-    } catch(err) {
-      status.innerHTML = '❌ Error al parsear JSON. Respuesta: <pre style="font-size:10px;overflow:auto;max-height:100px">' + text.substring(0,300) + '</pre>';
-      console.error('Parse error:', err, text);
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    var raw = (data.content||[]).map(function(b){return b.text||'';}).join('').trim();
+    raw = raw.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+    if (!raw.startsWith('{')) { var s = raw.indexOf('{'); if (s!==-1) raw = raw.slice(s); }
+    if (!raw.endsWith('}'))   { var e = raw.lastIndexOf('}'); if (e!==-1) raw = raw.slice(0,e+1); }
+
+    var parsed;
+    try { parsed = JSON.parse(raw); }
+    catch(e) {
+      // Intentar reparar JSON truncado — cerrar array e item abiertos
+      var repaired = raw;
+      // Si termina a mitad de un item, cerrar los objetos/arrays abiertos
+      var opens = (repaired.match(/\{/g)||[]).length - (repaired.match(/\}/g)||[]).length;
+      var openArr = (repaired.match(/\[/g)||[]).length - (repaired.match(/\]/g)||[]).length;
+      // Eliminar último item incompleto (que puede estar cortado)
+      var lastComma = repaired.lastIndexOf(',{"seccion"');
+      if (lastComma === -1) lastComma = repaired.lastIndexOf(',\n  {"seccion"');
+      if (lastComma === -1) lastComma = repaired.lastIndexOf(',{"item"');
+      if (lastComma !== -1) repaired = repaired.slice(0, lastComma);
+      // Volver a contar y cerrar
+      opens = (repaired.match(/\{/g)||[]).length - (repaired.match(/\}/g)||[]).length;
+      openArr = (repaired.match(/\[/g)||[]).length - (repaired.match(/\]/g)||[]).length;
+      for (var i=0;i<openArr;i++) repaired += ']';
+      for (var j=0;j<opens;j++) repaired += '}';
+      try {
+        parsed = JSON.parse(repaired);
+        status.innerHTML = '⚠️ Rider muy largo — se analizaron ' + (parsed.items||[]).length + ' items (puede haber más). Considera dividir el rider.';
+      } catch(e2) {
+        throw new Error('JSON inválido del rider: ' + raw.substring(0,300));
+      }
     }
+
+    var items = parsed.items || [];
+    var artistName = artist || parsed.artista || filename;
+    var eventName  = event || '';
+
+    status.innerHTML = '⚙️ Paso 2/2 — Cruzando ' + items.length + ' items contra inventario EKO…';
+
+    // Cruzar con inventario local (motor de matching v2)
+    var inventory = DB.inventario || [];
+    var results = items.map(function(item) {
+      var invMatch = ekoFindBest(item.item, item.marca_req, inventory);
+      var decision = ekoDecide(item.item, item.marca_req, invMatch);
+      return Object.assign({}, item, {decision: decision});
+    });
+
+    // Generar contrarider (segunda llamada IA)
+    var disp = results.filter(function(r){return r.decision.status==='disponible';});
+    var sust = results.filter(function(r){return r.decision.status==='sustitucion'||r.decision.status==='confirmar';});
+    var falt = results.filter(function(r){return r.decision.status==='faltante';});
+
+    function fmtList(lst) {
+      return lst.map(function(i){
+        var inv = i.decision.invItem;
+        var invStr = inv ? ' (' + (inv.marca||inv.Marca||'') + ' ' + (inv.modelo||inv.Modelo||'') + ')' : '';
+        return '- ' + i.qty + 'x ' + i.item + invStr + (i.marca_req?' | req: '+i.marca_req:'');
+      }).join('\n') || 'None';
+    }
+
+    var crPrompt = 'Write a professional backline counter-rider in English for EKO Backline.\n' +
+      'Artist: ' + artistName + ' | Event: ' + eventName + '\n\n' +
+      'AVAILABLE:\n' + fmtList(disp) + '\n\n' +
+      'SUBSTITUTIONS (we have equivalent):\n' + fmtList(sust) + '\n\n' +
+      'SOURCING EXTERNALLY (Watts Audio / Promaster):\n' + fmtList(falt) + '\n\n' +
+      'Production manager to production manager tone. Include brief technical justification for each substitution. Max 280 words.';
+
+    return fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type':'application/json',
+        'x-api-key': apiKey.trim(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 1000,
+        messages: [{role:'user', content: crPrompt}]
+      })
+    })
+    .then(function(r2){ return r2.json(); })
+    .then(function(d2) {
+      var contrarider = (d2.content||[]).map(function(b){return b.text||'';}).join('').trim();
+      renderAgenteRiderAnalysis(results, artistName, filename);
+      renderContrarider(contrarider);
+      renderFaltantes(falt, artistName);
+      status.innerHTML = '✅ <strong>' + artistName + '</strong> — ' + results.length + ' items analizados.';
+    });
   })
   .catch(function(err) {
-    var status = document.getElementById('rider-status');
     var msg = err.message || String(err);
-    if (msg.includes('Failed to fetch') || msg.includes('Load fail') || msg.includes('NetworkError')) {
-      status.innerHTML = '❌ Error de red: ' + msg + '<br><small>Posible problema de CORS. Verifica que la API Key sea válida.</small>';
-    } else {
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError'))
+      status.innerHTML = '❌ Error de red: ' + msg + '<br><small>Verifica tu API Key.</small>';
+    else
       status.innerHTML = '❌ Error: ' + msg;
-    }
-    console.error('Rider API error:', err);
+    console.error('Agente Rider error:', err);
   });
+}
+
+// ── RENDER RESULTADOS ──────────────────────────────────────────
+function renderAgenteRiderAnalysis(results, artistName, filename) {
+  _riderAnalysis = [];
+  var panel     = document.getElementById('rider-analysis-panel');
+  var container = document.getElementById('rider-items-analysis');
+  container.innerHTML = '';
+
+  var totalItems = results.length, matched = 0, partial = 0, missing = 0;
+
+  // Agrupar por sección
+  var sections = {};
+  results.forEach(function(r) {
+    var sec = r.seccion || 'General';
+    if (!sections[sec]) sections[sec] = [];
+    sections[sec].push(r);
+  });
+
+  Object.keys(sections).forEach(function(secName) {
+    var hdr = document.createElement('div');
+    hdr.className = 'rider-section-header';
+    hdr.textContent = '▸ ' + secName.toUpperCase();
+    container.appendChild(hdr);
+
+    sections[secName].forEach(function(item) {
+      var st = item.decision.status;
+      if (st === 'disponible') matched++;
+      else if (st === 'sustitucion' || st === 'confirmar') partial++;
+      else missing++;
+
+      var entryIdx = _riderAnalysis.length;
+      _riderAnalysis.push({
+        riderItem: {original: item.item, qty: item.qty, matchScore: st === 'disponible' ? 'exact' : st === 'faltante' ? 'none' : 'partial'},
+        section: secName,
+        selectedEqId: item.decision.invItem ? (item.decision.invItem.id || item.decision.invItem.Serie) : null,
+        status: st,
+        agentData: item
+      });
+
+      var badgeClass = st === 'disponible' ? 'rider-match-ok' : (st === 'faltante' ? 'rider-match-none' : 'rider-match-warn');
+      var badgeEmoji = st === 'disponible' ? '✅' : (st === 'faltante' ? '❌' : '⚠');
+      var badgeLabel = st === 'disponible' ? 'DISPONIBLE' : (st === 'faltante' ? 'FALTANTE' : (st === 'confirmar' ? 'CONFIRMAR PM' : 'SUSTITUCIÓN'));
+      var invItem = item.decision.invItem;
+      var invName = invItem ? ((invItem.nombre||invItem.Nombre||'') + ' ' + (invItem.marca||invItem.Marca||'') + ' ' + (invItem.modelo||invItem.Modelo||'')).trim() : '';
+      var provTag = item.decision.proveedor
+        ? '<span style="font-size:10px;background:rgba(220,50,50,0.15);color:var(--red);padding:2px 6px;border-radius:4px;margin-left:6px">' + item.decision.proveedor.toUpperCase() + '</span>'
+        : '';
+      var memNota = (item.decision.memoria_notas||[]).join(' ');
+
+      var row = document.createElement('div');
+      row.className = 'rider-analysis-row';
+      row.innerHTML =
+        '<div>' +
+          '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">×' + item.qty + (item.marca_req?' · '+item.marca_req:'') + '</div>' +
+          '<div style="font-size:13px;font-weight:600;color:var(--text1)">' + item.item + '</div>' +
+          (item.notas ? '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + item.notas + '</div>' : '') +
+        '</div>' +
+        '<div>' +
+          '<div style="margin-bottom:5px"><span class="rider-match-badge ' + badgeClass + '">' + badgeEmoji + ' ' + badgeLabel + '</span>' + provTag + '</div>' +
+          (invName ? '<div style="font-size:11px;color:var(--text2)">↳ ' + invName + '</div>' : '') +
+          (memNota ? '<div style="font-size:10px;color:var(--accent);margin-top:3px">' + memNota + '</div>' : '') +
+          '<div style="position:relative;margin-top:6px">' +
+            '<input type="text" id="rsearch-' + entryIdx + '" placeholder="🔍 Cambiar match..." value="' + invName + '" autocomplete="off" ' +
+              'style="width:100%;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text1);font-size:12px;outline:none;box-sizing:border-box" ' +
+              'oninput="riderSearchInv(this,' + entryIdx + ')" onfocus="riderSearchInv(this,' + entryIdx + ')" ' +
+              'onblur="setTimeout(function(){var d=document.getElementById(\'rdrop-' + entryIdx + '\');if(d)d.style.display=\'none\';},200)">' +
+            '<input type="hidden" id="rval-' + entryIdx + '" value="' + (item.decision.invItem ? (item.decision.invItem.id||'') : '') + '">' +
+            '<div id="rdrop-' + entryIdx + '" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;background:var(--surface2);border:1px solid var(--accent);border-top:none;border-radius:0 0 6px 6px;max-height:180px;overflow-y:auto"></div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px">' +
+          '<div style="font-size:10px;color:var(--text3)">CANT.</div>' +
+          '<input type="number" value="' + (item.qty||1) + '" min="1" style="width:54px;text-align:center;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text1);font-size:13px;font-weight:700" oninput="onRiderQtyChange(this,' + entryIdx + ')">' +
+        '</div>';
+      container.appendChild(row);
+    });
+  });
+
+  document.getElementById('rider-stats').innerHTML =
+    '<span style="color:#00c864">✅ ' + matched + '</span>  ' +
+    '<span style="color:var(--accent)">⚠ ' + partial + '</span>  ' +
+    '<span style="color:var(--red)">❌ ' + missing + '</span>  ' +
+    '<span style="color:var(--text3)">/ ' + totalItems + ' items</span>';
+
+  panel.style.display = 'block';
+  panel.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function renderFaltantes(falt, artistName) {
+  var panel = document.getElementById('rider-missing-panel');
+  var list  = document.getElementById('rider-missing-list');
+  if (!falt.length) { panel.style.display = 'none'; return; }
+
+  list.innerHTML = falt.map(function(f) {
+    var prov = f.decision.proveedor || 'watts';
+    var provColor = f.decision.critical ? 'var(--red)' : '#ff9900';
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid var(--border)">' +
+      '<div>' +
+        '<span style="font-size:13px;font-weight:600;color:var(--text1)">' + f.qty + 'x ' + f.item + '</span>' +
+        (f.marca_req ? '<span style="font-size:11px;color:var(--text3);margin-left:8px">' + f.marca_req + '</span>' : '') +
+        (f.notas ? '<div style="font-size:11px;color:var(--text3)">' + f.notas + '</div>' : '') +
+      '</div>' +
+      '<span style="font-size:11px;font-weight:700;color:' + provColor + ';background:rgba(220,50,50,0.1);padding:3px 8px;border-radius:4px">' + prov.toUpperCase() + '</span>' +
+    '</div>';
+  }).join('');
+
+  panel.style.display = 'block';
+}
+
+function renderContrarider(text) {
+  var panel = document.getElementById('rider-contrarider-panel');
+  document.getElementById('rider-contrarider-text').textContent = text;
+  panel.style.display = 'block';
+}
+
+function riderCopyContrarider() {
+  var txt = document.getElementById('rider-contrarider-text').textContent;
+  navigator.clipboard.writeText(txt).then(function(){
+    showToast('Contrarider copiado al portapapeles');
+  }).catch(function(){ showToast('Selecciona el texto y copia manualmente'); });
 }
 
 function renderRiderAnalysis(result, filename) {
@@ -11778,46 +12088,77 @@ function createCotFromRider() {
   var hasAny = _riderAnalysis.some(function(a){ return a.selectedEqId; });
   if (!hasAny) { toast('Asigna al menos un equipo antes de crear la cotización', 'var(--red)'); return; }
 
-  // Build items array
-  var items = [];
-  _riderAnalysis.forEach(function(a) {
-    // Also check hidden value field (from search box)
-    var valEl = document.getElementById('rval-' + _riderAnalysis.indexOf(a));
+  // Consolidar items — agrupar por equipoId para sumar cantidades (no duplicar)
+  var itemMap = {};    // equipoId → item consolidado
+  var itemOrder = []; // mantener orden de aparición
+
+  _riderAnalysis.forEach(function(a, idx) {
+    // Leer valor actualizado del campo hidden (usuario pudo cambiar el match)
+    var valEl = document.getElementById('rval-' + idx);
     if (valEl && valEl.value) a.selectedEqId = valEl.value;
     if (!a.selectedEqId) return;
+
     var eq = DB.inventario.find(function(e){ return String(e.id) === String(a.selectedEqId); });
     if (!eq) return;
-    items.push({
-      equipoId: String(eq.id),
-      nombre:   eq.nombre,
-      marca:    eq.marca || '',
-      modelo:   eq.modelo || '',
-      idEquipo: eq.serie || String(eq.id),
-      notas:    eq.notas || '',
-      cantidad: a.riderItem.qty || 1,
-      precioDia: parseFloat(eq.precio) || 0
-    });
+
+    var key = String(eq.id);
+    var qty = parseInt(a.riderItem && a.riderItem.qty, 10) || 1;
+    // Sección: viene del agentData (motor v10) o del campo section
+    var seccion = (a.agentData && a.agentData.seccion) ? a.agentData.seccion : (a.section || '');
+
+    if (itemMap[key]) {
+      // Ya existe — solo sumar cantidad
+      itemMap[key].cantidad += qty;
+    } else {
+      itemMap[key] = {
+        equipoId:  key,
+        nombre:    eq.nombre,
+        marca:     eq.marca  || '',
+        modelo:    eq.modelo || '',
+        idEquipo:  eq.serie  || key,
+        notas:     eq.notas  || '',
+        cantidad:  qty,
+        precioDia: parseFloat(eq.precio) || 0,
+        seccion:   seccion
+      };
+      itemOrder.push(key);
+    }
   });
 
-  // Switch to cotizaciones and open modal pre-filled
+  var items = itemOrder.map(function(k){ return itemMap[k]; });
+
+  if (!items.length) { toast('No hay equipos con match asignado', 'var(--red)'); return; }
+
+  // Leer artista/evento de los campos del formulario
+  var artistVal = (document.getElementById('rider-artist')||{}).value || '';
+  var eventVal  = (document.getElementById('rider-event')||{}).value  || '';
+
+  // Ir a cotizaciones y abrir modal pre-rellenado
   showView('cotizaciones');
   setTimeout(function() {
-    // Reset and open modal
     editingCotId = null;
     populateCotSelects();
     openModal('modal-cotizacion');
 
     setTimeout(function() {
-      // Pre-fill evento from artist name
-      var artist = document.getElementById('rider-analysis-panel').dataset.artist || '';
-      if (artist) document.getElementById('cot-evento').value = artist;
+      // Pre-llenar evento con artista + venue
+      var eventoEl = document.getElementById('cot-evento');
+      if (eventoEl) eventoEl.value = [artistVal, eventVal].filter(Boolean).join(' — ') || artistVal;
 
-      // Rebuild items
+      // Pre-llenar rider notas con nombre del artista
+      var riderEl = document.getElementById('cot-rider-notas');
+      if (riderEl && artistVal) riderEl.value = 'Rider: ' + artistVal + (eventVal ? ' · ' + eventVal : '');
+
+      // Agregar items con sección
       var container = document.getElementById('cot-items');
       container.innerHTML = '';
       items.forEach(function(item) { addCotItemWithData(item); });
       recalcTotal();
-      toast('🎸 ' + items.length + ' equipos importados del rider');
+
+      var duped = _riderAnalysis.filter(function(a){ return a.selectedEqId; }).length - items.length;
+      var msg = '🎸 ' + items.length + ' equipos importados del rider';
+      if (duped > 0) msg += ' (' + duped + ' duplicados consolidados)';
+      toast(msg);
     }, 150);
   }, 100);
 }
